@@ -78,7 +78,7 @@ function love.load()
 	-----------------------------------------------
 	fillMode = nil
 	brush = {}
-	brush.color = {255, 0, 255, 255}
+	brush.color = {0, 0, 0, 255}
 	colorIndicator = {0, 0, 0, 255}
 	currentFrameIndex = 1
 	aaDirection = 1-- Right.
@@ -797,11 +797,8 @@ function setPixel(x, y, c, fromUpdate)
  			c = {0, 0, 0, 0}
 		end
 
-		if not fromUpdate then
-			flood(fixedX, fixedY, cF, cF[fixedY][fixedX].color, brush.color)
-		else
-			cF[fixedY][fixedX]:setColor(c)
-		end
+		flood(fixedX, fixedY, cF, cF[fixedY][fixedX].color, brush.color)
+		cF[fixedY][fixedX]:setColor(c)
 
 		-- Draw a line if it's the case (Bresenham's Line Algorithm):
 		if lineAnchor and shiftDown() then
@@ -1252,6 +1249,7 @@ function love.keypressed(key)
 			if key == "c" then
 				palette.change()
 				brush.color = palette.getColor(palette.xColor, palette.yColor)
+				gooi.get("btnChangePalette").label = "Palette "..palette.which
 			end
 		end
 	end

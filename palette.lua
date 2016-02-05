@@ -2,7 +2,7 @@ palette = {}
 
 palette =
 {
-	number = 4,
+	number = 6,
 	x = 135,
 	y = 12,
 	xColor = 135,
@@ -29,7 +29,7 @@ palette.iD = function()
 	return palette["iD"..palette.which]
 end
 
-palette.scales = {[1] = 8, [2] = 8, [3] = 8, [4] = 32}
+palette.scales = {[1] = 8, [2] = 8, [3] = 8, [4] = 32, [5] = 32, [6] = 8}
 
 palette.scale = function()
 	return palette.scales[palette.which]
@@ -68,7 +68,7 @@ end
 
 palette.change = function()
 	palette.which = palette.which + 1
-	if palette.which > 4 then
+	if palette.which > palette.number then
 		palette.which = 1
 	end
 	palette.changeSquare(palette.xColor, palette.yColor)
