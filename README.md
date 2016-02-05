@@ -1,4 +1,4 @@
-![Süsse logo](http://s2.postimg.org/lhtx069ih/logo_Susse.png)
+![Süsse logo](http://s27.postimg.org/qvaehj7gz/logo_Susse.png)
 
 ##### Süsse (Super ültra sweet sprite editor) helps you to create low-resolution sprite sheets.
 
