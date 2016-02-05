@@ -1,20 +1,25 @@
+palette = {}
+
 palette =
 {
-	["img1"] = love.graphics.newImage("/images/palette1.png"),
-	["img2"] = love.graphics.newImage("/images/palette2.png"),
-	["img3"] = love.graphics.newImage("/images/palette3.png"),
+	number = 4,
 	x = 135,
 	y = 12,
 	xColor = 135,
 	yColor = 12
 }
 
+for i = 1, palette.number do
+	palette["img"..i] = love.graphics.newImage("/images/palette"..i..".png")
+end
+
 palette.which = 1
 palette.pressed = false
 
-palette["iD1"] = love.image.newImageData("/images/palette1.png")
-palette["iD2"] = love.image.newImageData("/images/palette2.png")
-palette["iD3"] = love.image.newImageData("/images/palette3.png")
+for i = 1, palette.number do
+	palette["iD"..i] = love.image.newImageData("/images/palette"..i..".png")
+	palette["img"..i]:setFilter("nearest", "nearest")
+end
 
 palette.img = function()
 	return palette["img"..palette.which]
@@ -24,15 +29,10 @@ palette.iD = function()
 	return palette["iD"..palette.which]
 end
 
-
-palette.img1:setFilter("nearest", "nearest")
-palette.img2:setFilter("nearest", "nearest")
-palette.img3:setFilter("nearest", "nearest")
+palette.scales = {[1] = 8, [2] = 8, [3] = 8, [4] = 32}
 
 palette.scale = function()
-	if palette.which == 1 then return 32 end
-	if palette.which == 2 then return 8 end
-	if palette.which == 3 then return 1 end
+	return palette.scales[palette.which]
 end
 
 palette.w = function()
@@ -47,8 +47,8 @@ palette.mouseInside = function()
 	return not (
 		love.mouse.getX() <= palette.x or
 		love.mouse.getY() <= palette.y or
-		love.mouse.getX() >= palette.x + palette.img():getWidth() * palette.scale() or
-		love.mouse.getY() >= palette.y + palette.img():getHeight() * palette.scale()
+		love.mouse.getX() >= palette.x + palette.w() or
+		love.mouse.getY() >= palette.y + palette.h()
 	)
 end
 
@@ -62,12 +62,13 @@ palette.getColor = function(theX, theY)
 	--print(rx, ry)
 	local r, g, b, a = palette.iD():getPixel(rx, ry)
 	local c = {r, g, b, a}
+	--print(r, g, b, a)
 	return c
 end
 
 palette.change = function()
 	palette.which = palette.which + 1
-	if palette.which > 3 then
+	if palette.which > 4 then
 		palette.which = 1
 	end
 	palette.changeSquare(palette.xColor, palette.yColor)

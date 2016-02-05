@@ -83,7 +83,7 @@ function love.load()
 	currentFrameIndex = 1
 	aaDirection = 1-- Right.
 	aaRotation = 0
-	palette.change()
+	--palette.change()
 
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
@@ -113,14 +113,14 @@ function love.load()
 	gooi.newButton("btnCopyL", "", 10, 380, 50, 30, imagesDir.."copyL.png", "editing"):setToolTip("Copy frame from the left")
 	gooi.newButton("btnCopyR", "", 70, 380, 50, 30, imagesDir.."copyR.png", "editing"):setToolTip("Copy frame from the right")
 	gooi.newButton("btnAF", "", 10, 420, 50, 30, imagesDir.."osFolder.png", "editing").bgColor = {0, 0, 0, 127}
-	gooi.newSlider("sliAlpha", 340, 10, 90, 30, 1, "editing"):setToolTip("Alpha of color picked")
-	gooi.newCheckbox("chbAA", "Auto", 530, 10, 90, 30, false, "editing"):setToolTip("Auto animation, defines a pattern")
-	gooi.newButton("btnAA", "", 530, 50, 30, 30, imagesDir.."n.png", "editing"):setToolTip("Direction of the autoanimation")
-	gooi.newCheckbox("chbCyclic", "Cyclic", 570, 50, 90, 30, false, "editing").bgColor = {0, 255, 0, 127}
-	gooi.newSpinner("spiStep", 670, 50, 90, 30, 1, 0, 20, 1, "editing").bgColor = {255, 127, 0, 127}
-	gooi.newLabel("lblInd", "255", 440, 10, 70, 30, imagesDir.."n.png", "center", "editing")
-	gooi.newSlider("sliBrig", 340, 50, 90, 30, .5, "editing").bgColor = {0, 255, 255, 127}
-	gooi.newButton("btnFill", "", 440, 50, 70, 30, imgFill, "editing").bgColor = {127, 127, 127, 127}
+	gooi.newSlider("sliAlpha", 400, 10, 90, 30, 1, "editing"):setToolTip("Alpha of color picked")
+	gooi.newCheckbox("chbAA", "Auto", 580, 10, 90, 30, false, "editing"):setToolTip("Auto animation, defines a pattern")
+	gooi.newButton("btnAA", "", 580, 50, 30, 30, imagesDir.."n.png", "editing"):setToolTip("Direction of the autoanimation")
+	gooi.newCheckbox("chbCyclic", "Cyclic", 620, 50, 90, 30, false, "editing").bgColor = {0, 255, 0, 127}
+	gooi.newSpinner("spiStep", 720, 50, 90, 30, 1, 0, 20, 1, "editing").bgColor = {255, 127, 0, 127}
+	gooi.newLabel("lblInd", "255", 490, 10, 70, 30, imagesDir.."n.png", "center", "editing")
+	gooi.newButton("btnChangePalette", "Palette "..palette.which, 400, 50, 90, 30, imagesDir.."n.png", "editing");
+	gooi.newButton("btnFill", "", 510, 50, 50, 30, imgFill, "editing").bgColor = {127, 127, 127, 127}
 
 	gooi.newButton("btnFS", "", width() - 120, 10, 50, 30, imagesDir.."fs.png", "editing"):onRelease(function(c)
 		love.window.setFullscreen(not love.window.getFullscreen())
@@ -148,7 +148,6 @@ function love.load()
 	gooi.get("chbCyclic"):setToolTip("Cyclic autoanimation, this makes the animation to 'return' from the opposite side")
 	gooi.get("spiStep"):setToolTip("Step of the autoanimation, in pixels")
 	gooi.get("btnFill"):setToolTip("Fill in 4 or 8 directions")
-	gooi.get("sliBrig"):setToolTip("Brightness of the color")
 	gooi.get("btnOptions"):setToolTip("Options")
 	gooi.get("btnFS"):setToolTip("Toggle fullscreen")
 	gooi.get("btnAF"):setToolTip("This is experimental, it opens the save directory with os.execute()")
@@ -393,6 +392,10 @@ function love.load()
 			setNoFillMode(c)
 		end
 	end)
+	gooi.get("btnChangePalette"):onRelease(function(c)
+		palette.change()
+		c.label = "Palette "..palette.which
+	end)
 	gooi.get("btnOptions"):onRelease(function(c)
 		gooi.setGroupEnabled("editing", false)
 		gooi.setGroupEnabled("options", true)
@@ -439,7 +442,6 @@ function love.update(dt)
 				palette.pressed = true
 				palette.changeSquare(mo.getX(), mo.getY())
 				brush.color = palette.getColor()
-				resetBrightness()
 			end
 		elseif palette.pressed then
 			local x = mo.getX()
@@ -454,7 +456,6 @@ function love.update(dt)
 			if y <= palette.y then y = palette.y end
 			palette.changeSquare(x, y)
 			brush.color = palette.getColor(palette.xColor, palette.yColor)
-			resetBrightness()
 		end
 		-- Update color indicator:
 		for i = 1, 3 do
@@ -474,11 +475,6 @@ function love.update(dt)
 				playOrStop(gooi.get("btnPlay"))
 			end
 		end
-		-- Brightness:
-		brush.color = palette.getColor(palette.xColor, palette.yColor)
-		local newColor = colorManager.setBrightness(brush.color, gooi.get("sliBrig").value)
-		brush.color = newColor
-		brush.color[4] = gooi.get("sliAlpha").value * 255
 		-- Animation:
 		analAnim:setFramesDelay(gooi.get("spiSpeed").value)
 	elseif state == STATE_SAVING then
@@ -564,7 +560,7 @@ function love.draw()
 		gr.setColor(6, 96, 128)
 		-- Just some separators:
 		gr.line(10, 290, 120, 290)
-		gr.line(520, 10, 520, 80)
+		gr.line(570, 10, 570, 80)
 
 		-- Palette:
 		gr.setColor(255, 255, 255)
@@ -914,10 +910,6 @@ function sameColor(c1, c2)
 	c1[4] == c2[4]
 end
 
-function resetBrightness()
-	gooi.get("sliBrig"):setValue(.5)
-end
-
 function drawAutoAnim(fixedX, fixedY, fW, fH, cF, c)
 	if gooi.get("chbAA").checked then
 		local dx, dy = fixedX, fixedY -- Displacements.
@@ -1256,8 +1248,8 @@ function love.keypressed(key)
 			end
 		end
 
-		if shiftDown() then
-			if key == "c" then-- Change color:
+		if altDown() then
+			if key == "c" then
 				palette.change()
 				brush.color = palette.getColor(palette.xColor, palette.yColor)
 			end
