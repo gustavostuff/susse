@@ -91,6 +91,7 @@ function love.load()
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
 	font = gr.newFont("HussarPrintA.otf", 16)
+	fontLetter = gr.newFont(30)
 	gooi.font = font
 	debugFont = gr.newFont(width() / 70)
 	finalW, finalH = 0, 0
@@ -415,7 +416,7 @@ end
 
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
--- love.draw()
+-- love.update()
 ---------------------------------------------------------------------------
 ---------------------------------------------------------------------------
 
@@ -598,7 +599,23 @@ function love.draw()
 		end
 
 		gr.setColor(255, 255, 255)
+
+		---------------------------------------------
+		---------------------------------------------
 		gooi.draw("editing")
+		---------------------------------------------
+		---------------------------------------------
+
+		-- Frame indicator:
+		prevFont = gr.getFont()
+		gr.setFont(fontLetter)
+		local wFontLetter = fontLetter:getWidth(""..currentFrameIndex) + 10
+		local hFontLetter = fontLetter:getHeight()
+
+		gr.setColor(255, 255, 255)
+		gr.print(currentFrameIndex.."/"..#frames, 10, height() - hFontLetter)
+	
+		gr.setFont(prevFont)
 
 		gr.setColor(255, 255, 255)
 		if not gooi.get("chbAA").checked then
@@ -641,7 +658,8 @@ function love.draw()
 	gr.setColor(255, 255, 255)
 	--gr.print(aaDirection, 200,200)
 	gr.setFont(debugFont)
-	gr.print("FPS: "..love.timer.getFPS()..", Frame: "..currentFrameIndex.."/"..#frames, 0, height() - debugFont:getHeight())
+	local fpsText = "FPS: "..love.timer.getFPS()
+	gr.print(fpsText, width() - debugFont:getWidth(fpsText), height() - debugFont:getHeight())
 	--gr.print("dispCX: "..dispCX..", dispCY: "..dispCY, 0, height() - debugFont:getHeight() * 2)
 end
 
