@@ -11,7 +11,8 @@ How to use it with the keyboard:
 * Ctrl + Shift + D deletes the current frame
 * Ctrl + G shows/hides the grid
 * Alt + C changes the palette
-* Click while pressing B will perform a fill
-* Clcik while pressing Ctrl + B will perform an 8-directional fill
+* Click while pressing B will perform a normal fill
+* Click while pressing Ctrl + B will perform an 8-directional fill
+* Click while pressing Shift draws a line
 
 Süsse is still a work in progress, thanks!
