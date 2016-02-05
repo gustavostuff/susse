@@ -2,4 +2,4 @@
 
 ##### Süsse helps you to create low-resolution sprite sheets.
 
-![editor](http://s11.postimg.org/uifco626r/image.png)
+![editor](http://s15.postimg.org/rbx4itzej/final_Gif.gif)

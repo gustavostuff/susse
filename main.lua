@@ -395,6 +395,7 @@ function love.load()
 	gooi.get("btnChangePalette"):onRelease(function(c)
 		palette.change()
 		c.label = "Palette "..palette.which
+		brush.color = palette.getColor(palette.xColor, palette.yColor)
 	end)
 	gooi.get("btnOptions"):onRelease(function(c)
 		gooi.setGroupEnabled("editing", false)
