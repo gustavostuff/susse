@@ -31,6 +31,5 @@ assert(not BASE:match('%.init%.$'), "Invalid require path `"..(...).."' (drop th
 return {
 	utf8 = require(BASE .. 'utf8'), 
 	gooi = require(BASE .. 'gooi'),
-	component = require(BASE .. 'component'),
-	layout = require(BASE .. 'layout')
+	component = require(BASE .. 'component')
 }
