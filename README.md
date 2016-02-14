@@ -12,5 +12,6 @@ How to use it with the keyboard:
 * Click while pressing B will perform a normal fill
 * Click while pressing Ctrl + B will perform an 8-directional fill
 * Click while pressing Shift draws a line
+* Mouse wheel to zoom in or out
 
 Süsse is still a work in progress, thanks!
