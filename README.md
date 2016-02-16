@@ -1,5 +1,7 @@
 #### Süsse (Super ültra sweet sprite editor) helps you to create low-resolution sprite sheets.
 
+[![License](http://img.shields.io/:license-MIT-blue.svg)](http://doge.mit-license.org)
+
 ![editor](http://s8.postimg.org/g99frtt0l/finalfinal.gif)
 
 How to use it with the keyboard:
