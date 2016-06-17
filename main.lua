@@ -95,7 +95,7 @@ function love.load()
 	-- gooi:
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
-	font = gr.newFont("HussarPrintA.otf", 16)
+	font = gr.newFont("fonts/HussarPrintA.otf", 16)
 	fontLetter = gr.newFont(30)
 	style = {
 		font = font,
