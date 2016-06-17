@@ -12,7 +12,8 @@ function height()
 end
 
 function love.load()
-	print("Save directory: "..love.filesystem.getSaveDirectory())
+	save_dir = love.filesystem.getSaveDirectory()
+	print("GÖÖi save directory: "..save_dir)
 	gr = love.graphics
 	kb = love.keyboard
 	mo = love.mouse
@@ -29,12 +30,15 @@ function love.load()
 	MOUSE_RIGHT = 2
 	MOUSE_MIDDLE = 3
 	-----------------------------------------------
+	states = {}-- For Ctrl + Z
+	indexStates = 1
+	timerCopied = 0
+	-----------------------------------------------
 	win = {}
 	win.smaller = function()
 		if width() < height() then return width() end
 		return height()
 	end
-	--gr.setPointStyle("rough")
 	bgC1 = {31, 21, 10}
 	bgC2 = {22, 48, 0}
 	bgC3 = {18, 41, 54}
@@ -74,7 +78,8 @@ function love.load()
 	mirrorX = false
 	mirrorY = false
 	playing = false
-	animSaved = false
+	animSaved = true
+	just_copied = false
 	-----------------------------------------------
 	fillMode = nil
 	brush = {}
@@ -92,108 +97,167 @@ function love.load()
 	---------------------------------------------------------------------------
 	font = gr.newFont("HussarPrintA.otf", 16)
 	fontLetter = gr.newFont(30)
-	gooi.font = font
+	style = {
+		font = font,
+		bgColor = "218AB8cc",
+		round = .1,
+		roundInside = .2,
+		showBorder = true
+		--mode3d = true,
+		--glass = true
+	}
+
+	gooi.setStyle(style)
 	debugFont = gr.newFont(width() / 70)
 	finalW, finalH = 0, 0
 	-- Edit gooi:
-	gooi.newButton("btnNew", "", 10, 10, 50, 30, imagesDir.."new.png", "editing"):setToolTip("New animation")
-	gooi.newButton("btnOpen", "", 70, 10, 50, 30, imagesDir.."open.png", "editing"):setToolTip("Open animation")
-	gooi.newButton("btnPlay", "", 10, 50, 110, 30, imgRight, "editing").bgColor = {0, 255, 0, 127}
-	gooi.newButton("btnSave", "", 10, 90, 50, 30, imgSave, "editing"):setToolTip("Save the animation")
-	gooi.newButton("btnSaveAs", "", 70, 90, 50, 30, imgSaveAs, "editing"):setToolTip("Save as...")
-	gooi.newButton("btnPrev", "", 10, 130, 50, 30, imgLeft, "editing").bgColor = {255, 127, 0, 127}
-	gooi.newButton("btnNext", "", 70, 130, 50, 30, imgRight, "editing").bgColor = {255, 127, 0, 127}
-	gooi.newButton("btnDel", "", 10, 170, 50, 30, imagesDir.."del.png", "editing"):setToolTip("Delete current frame")
-	gooi.newButton("btnAdd", "", 70, 170, 50, 30, imagesDir.."add.png", "editing"):setToolTip("Add a new frame")
-	gooi.newCheckbox("chbLoop", "Loop", 10, 210, 110, 30, true, "editing").bgColor = {0, 255, 255, 127}
-	gooi.newSpinner("spiSpeed", 10, 250, 110, 30, 0.1, 0.01, 1, 0.01, "editing"):setToolTip("Delay in ms, of the animation")
+	
+	btnNew = gooi.newButton({icon = imagesDir.."new.png"}):setTooltip("Create a new animation")
+	btnOpen = gooi.newButton({icon = imagesDir.."open.png"}):setTooltip("Open an animation")
+	btnPlay = gooi.newButton({icon = imgRight}):bg("#00ff0088"):setTooltip("Play the animacion")
+	btnSave = gooi.newButton({icon = imgSave}):setTooltip("Save current animation")
+	btnSaveAs = gooi.newButton("as.."):setTooltip("Save as...")
+	btnPrev = gooi.newButton({icon = imgLeft}):bg("#ff880088"):setTooltip("Change to the previous frame")
+	btnNext = gooi.newButton({icon = imgRight}):bg("#ff880088"):setTooltip("Change to the next frame")
+	btnDel = gooi.newButton({icon = imagesDir.."del.png"}):setTooltip("Deletes the last frame (Shift to delete current)")
+	btnAdd = gooi.newButton({icon = imagesDir.."add.png"}):setTooltip("Add a new frame (Shift to add in current position)")
+	chbLoop = gooi.newCheck("Loop"):change():bg("#FFFF0088"):setTooltip("Loop animation")
+	sliSpeed = gooi.newSlider(0.25):setTooltip("Delay in seconds for each frame"):setTooltip("Speed in seconds for each frame")
+	lblSpeed = gooi.newLabel("0.1"):setOrientation("center")
+	chbGrid = gooi.newCheck("Grid"):change():setTooltip("Show/Hide grid")
+	btnMX = gooi.newButton({icon = imagesDir.."mX.png"}):bg("#88888888"):setTooltip("Mirror in X axis")
+	btnMY = gooi.newButton({icon = imagesDir.."mY.png"}):bg("#88888888"):setTooltip("Mirror in Y axis")
+	btnCopyL = gooi.newButton({icon = imagesDir.."copyL.png"}):setTooltip("Copy frame from the left")
+	btnCopyR = gooi.newButton({icon = imagesDir.."copyR.png"}):setTooltip("Copy frame from the left")
+	------------
+	sliAlpha = gooi.newSlider(1):setTooltip("Alpha of picked color")
+	chbAA = gooi.newCheck("Autoanimate"):setTooltip("'Moves' the drawn pixels to the indicated direction, with the given step size")
+	btnAA = gooi.newButton(""):setTooltip("Direction of the autoanimation")
+	chbCyclic = gooi.newCheck("Turn"):bg("#ff880088"):setTooltip("Makes the pixels to 'return' from the opposite side")
+	spiStep = gooi.newSpinner(0, 5, 1):setTooltip("Step size for the autoanimation")
+	lblInd = gooi.newLabel("255"):setOrientation("center")
+	btnChangePalette = gooi.newButton("Palette"):bg("#00ffff88"):setTooltip("Change color palette")
+	btnFill = gooi.newButton({icon = imgFill}):bg("#88888888"):setTooltip("Fill in 4 or 8 directions")
 
-	gooi.newCheckbox("chbGrid", "Grid", 10, 300, 110, 30, false, "editing").bgColor = {255, 255, 0, 127}
-	gooi.newButton("btnMX", "", 70, 340, 50, 30, imagesDir.."mX.png", "editing").bgColor = {127, 127, 127, 127}
-	gooi.newButton("btnMY", "", 10, 340, 50, 30, imagesDir.."mY.png", "editing").bgColor = {127, 127, 127, 127}
-	gooi.newButton("btnCopyL", "", 10, 380, 50, 30, imagesDir.."copyL.png", "editing"):setToolTip("Copy frame from the left")
-	gooi.newButton("btnCopyR", "", 70, 380, 50, 30, imagesDir.."copyR.png", "editing"):setToolTip("Copy frame from the right")
-	gooi.newSlider("sliAlpha", 400, 10, 90, 30, 1, "editing"):setToolTip("Alpha of color picked")
-	gooi.newCheckbox("chbAA", "Auto", 580, 10, 90, 30, false, "editing"):setToolTip("Auto animation, defines a pattern")
-	gooi.newButton("btnAA", "", 580, 50, 30, 30, imagesDir.."n.png", "editing"):setToolTip("Direction of the autoanimation")
-	gooi.newCheckbox("chbCyclic", "Cyclic", 620, 50, 90, 30, false, "editing").bgColor = {0, 255, 0, 127}
-	gooi.newSpinner("spiStep", 720, 50, 90, 30, 1, 0, 20, 1, "editing").bgColor = {255, 127, 0, 127}
-	gooi.newLabel("lblInd", "255", 490, 10, 70, 30, imagesDir.."n.png", "center", "editing")
-	gooi.newButton("btnChangePalette", "Palette "..palette.which, 400, 50, 90, 30, imagesDir.."n.png", "editing");
-	gooi.newButton("btnFill", "", 510, 50, 50, 30, imgFill, "editing").bgColor = {127, 127, 127, 127}
-
-	gooi.newButton("btnFS", "", width() - 120, 10, 50, 30, imagesDir.."fs.png", "editing"):onRelease(function(c)
+	btnFS = gooi.newButton({icon = imagesDir.."fs.png"}):onRelease(function(c)
 		love.window.setFullscreen(not love.window.getFullscreen())
 		c.image = love.graphics.newImage(imagesDir.."fs.png")
 		if love.window.getFullscreen() then
 			c.image = love.graphics.newImage(imagesDir.."nofs.png")
 		end
-		c:setBounds(width() - 120, 10, 50, 30)
-		gooi.get("btnOptions"):setBounds(width() - 60, 10, 50, 30)
-		gooi.get("btnReturn"):setBounds(width() - 120, height() - 40, 110, 30)
+		--btnOptions:setBounds(width() - 60, 10, 50, 30)
+		--btnReturn:setBounds(width() - 120, height() - 40, 110, 30)
 	end
-	).bgColor = {127, 0, 127, 127}
-	gooi.newButton("btnOptions", "", width() - 60, 10, 50, 30, imagesDir.."spanner.png", "editing").bgColor = {127, 0, 127, 127}
-	gooi.newButton("btnQuit", "", width() - 60, 50, 50, 30, imagesDir.."quit.png", "editing").bgColor = {255, 0, 0, 127}
-	
-	-- Change look:
-	gooi.get("btnPlay"):setToolTip("Play/Stop the animation")
-	gooi.get("chbGrid"):setToolTip("Show or hide the grid")
-	gooi.get("chbLoop"):setToolTip("Loop or 'just once' animation")
-	gooi.get("btnMY"):setToolTip("Mirror in Y")
-	gooi.get("btnMX"):setToolTip("Mirror in X")
-	gooi.get("btnPrev"):setToolTip("Previous frame")
-	gooi.get("btnNext"):setToolTip("Next frame")
-	gooi.get("btnQuit"):setToolTip("Quit Application")
-	gooi.get("chbCyclic"):setToolTip("Cyclic autoanimation, this makes the animation to 'return' from the opposite side")
-	gooi.get("spiStep"):setToolTip("Step of the autoanimation, in pixels")
-	gooi.get("btnFill"):setToolTip("Fill in 4 or 8 directions")
-	gooi.get("btnOptions"):setToolTip("Options")
-	gooi.get("btnFS"):setToolTip("Toggle fullscreen")
-	local btnAA = gooi.get("btnAA")
-	btnAA.bgColor = {0, 255, 0, 127}
-	btnAA.opaque = true
-	btnAA.radiusCorner = btnAA.h / 2
-	btnAA:generateBorder()
+	):bg({127, 0, 127, 127}):setTooltip("Fullscreen")
+	--gooi.newButton("btnOptions", "", width() - 60, 10, 50, 30, imagesDir.."spanner.png", "editing").bgColor = {127, 0, 127, 127}
+	btnOptions = gooi.newButton({icon = imagesDir.."spanner.png"}):setTooltip("See options")
+	--gooi.newButton("btnQuit", "", width() - 60, 50, 50, 30, imagesDir.."quit.png", "editing").bgColor = {255, 0, 0, 127}
+	--btnQuit = gooi.newButton({icon = imagesDir.."quit.png"}):bg("#ff000088")
+
+	btnCopyCB = gooi.newButton("Copy SD", 110, height() - 30, 110, 25):onRelease(function(c)
+		c:setText("Copied!"):bg("#FF880088")
+		just_copied = true
+		love.system.setClipboardText(lblCopySD.text)
+	end):setGroup("editing")
+
+	lblCopySD = gooi.newLabel(save_dir, 230, height() - 30, width() - 235, 25):setGroup("editing"):setOrientation("left")
+	:setOpaque(true):bg("#000000BB")
+
+	-- Put them in the panel:
+	panelEdit = gooi.newPanel(3, 3, 100, 550, "grid 16x2")
+	:setColspan(2, 1, 2)-- Play
+	:setColspan(6, 1, 2)
+	:setColspan(7, 1, 2)
+	:setColspan(8, 1, 2)
+	:setColspan(9, 1, 2)
+	:setColspan(12, 1, 2)
+	:add(
+		btnNew,
+		btnOpen,
+		btnPlay,
+		btnSave,
+		btnSaveAs,
+		btnPrev,
+		btnNext,
+		btnDel,
+		btnAdd,
+		chbLoop,
+		sliSpeed,
+		lblSpeed,
+		chbGrid,
+		btnMX,
+		btnMY,
+		btnCopyL,
+		btnCopyR,
+		btnCopyCB
+	):setGroup("editing")
+
+	panelEdit2 = gooi.newPanel(365, 3, 400, 70, "grid 2x9")
+	panelEdit2.layout.debug = false
+
+	panelEdit2
+	:setColspan(1, 1, 2)-- Slider alpha
+	:setColspan(1, 3, 4)-- Autoanimate
+	:setColspan(1, 7, 2)-- Turn
+	:setColspan(2, 1, 2)-- 255
+	:setColspan(2, 3, 2)-- Step
+	:setColspan(2, 5, 2)-- Fill
+	:add(
+		sliAlpha,
+		chbAA,
+		chbCyclic,
+		btnAA,
+		lblInd,
+		spiStep,
+		btnChangePalette,
+		btnFill,
+		--btnFS,
+		btnOptions
+	):setGroup("editing")
+
+	btnAA:bg({0, 255, 0, 127})
 	btnAA:setEnabled(false)
-	gooi.get("chbCyclic"):setEnabled(false)
-	gooi.get("spiStep"):setEnabled(false)
+	chbCyclic:setEnabled(false)
+	spiStep:setEnabled(false)
+	--palette.changeSquare()
 
 	-- Saving gooi:
-	gooi.newSlider("sliderSave", 10, 10, width() - 20, 30, .5, "saving").bgColor = {255, 255, 0, 127}
-	gooi.newButton("btnCancelSave", "Cancel", width() - 200, height() - 40, 90, 30, imagesDir.."n.png", "saving").bgColor = {200, 0, 0, 127}
-	gooi.newButton("btnConfirmSave", "Save",  width() - 100,  height() - 40, 90, 30, imagesDir.."n.png", "saving")
-	gooi.newLabel("lblName","Name:", width() - 550, height() - 70)
-	gooi.get("lblName").group = "saving"
-	gooi.newTextfield("textName", "new.png", width() - 550, height() - 40, 300, 30, "saving")
-	gooi.get("sliderSave")
-	gooi.get("btnCancelSave")
+	sliderSave = gooi.newSlider(0, 50, 200, 600, 30):setGroup("saving")
+	btnCancelSave = gooi.newButton("Cancel", width() - 220, height() - 40, 100, 30):setGroup("saving"):bg("#ff000088")
+	btnConfirmSave = gooi.newButton("Save", width() - 110, height() - 40, 100, 30):setGroup("saving")
+	lblName = gooi.newLabel("Name:", width() - 540, height() - 40, 100, 30):setGroup("saving")
+	textName = gooi.newText("new.png", width() - 430, height() - 40, 200, 30):setGroup("saving")
 
 	-- New animation gooi:
-	gooi.newLabel("lblFrameNum:", "Frames:", width() - 450, 480, 120, 30, imagesDir.."fNum.png", "left", "new")
-	gooi.newLabel("lblFrameW:", "Width:", width() - 450, 520, 120, 30, imagesDir.."fW.png", "left", "new")
-	gooi.newLabel("lblFrameH:", "Height:", width() - 450, 560, 120, 30, imagesDir.."fH.png", "left", "new")
-	gooi.newSpinner("spiFramesNum", width() - 330, 480, 100, 30, 10, 1, 50, 1, "new")
-	gooi.newSpinner("spiNewW", width() - 330, 520, 100, 30, 16, 1, 32, 1, "new")
-	gooi.newSpinner("spiNewH", width() - 330, 560, 100, 30, 16, 1, 32, 1, "new")
-	gooi.newButton("btnCancelNew", "Cancel", width() - 220, height() - 40, 100, 30, imagesDir.."n.png", "new")
-	gooi.newButton("btnOkNew", "Ok", width() - 110, height() - 40, 100, 30, imagesDir.."n.png", "new")
+	--gooi.newLabel("lblFrameNum:", "Frames:", width() - 450, 480, 120, 30, imagesDir.."fNum.png", "left", "new")
+	gooi.newLabel              ("Width:", 10, 60, 120, 30):setGroup("new")
+	gooi.newLabel              ("Height:", 10, 100, 120, 30):setGroup("new")
+	lblFrameNum = gooi.newLabel("Frames", 10, 140, 120, 30):setGroup("new")
+	spiNewW =      gooi.newSpinner(1, 32, 16, 130, 60, 120, 30):setGroup("new")
+	spiNewH =      gooi.newSpinner(1, 32, 16, 130, 100, 120, 30):setGroup("new")
+	spiFramesNum = gooi.newSpinner(1, 50, 10, 130, 140, 120, 30):setGroup("new")
+	btnCancelNew = gooi.newButton("Cancel", width() - 220, height() - 40, 100, 30):setGroup("new"):bg("#ff000088")
+	btnOkNew = gooi.newButton("OK", width() - 110, height() - 40, 100, 30):setGroup("new")
 
-	gooi.get("btnCancelNew").bgColor = {255, 0, 0, 127}
+	--gooi.get("btnCancelNew").bgColor = {255, 0, 0, 127}
 
 	-- Options gooi:
-	gooi.newRadio("radTheme1", "Theme 1", 10, 50, 150, 30, true, "grpTheme", "options").bgColor = {135, 136, 77, 200}
-	gooi.newRadio("radTheme2", "Theme 2", 10, 90, 150, 30, false, "grpTheme", "options").bgColor = {80, 140, 16, 200}
-	gooi.newRadio("radTheme3", "Theme 3", 10, 130, 150, 30, false, "grpTheme", "options").bgColor = {31, 119, 193, 200}
-	gooi.newButton("btnReturn", "Return", width() - 120, height() - 40, 110, 30, imagesDir.."n.png", "options")
-	gooi.newRadio("radBg1", "Background 1", 200, 50, 180, 30, true, "grpBG", "options")
-	gooi.newRadio("radBg2", "Background 2", 200, 90, 180, 30, false, "grpBG", "options")
-	gooi.newRadio("radBg3", "Background 3", 200, 130, 180, 30, false, "grpBG", "options")
-	gooi.newCheckbox("chbAutosave", "Save animation when playing", 10, 190, 310, 30, true, "options").bgColor = {0, 255, 0, 127}
+	
+	radTheme1 = gooi.newRadio("Theme 1", "grpTheme", 50, 50, 150, 30):setGroup("options")
+	radTheme2 = gooi.newRadio("Theme 2", "grpTheme", 50, 90, 150, 30):setGroup("options"):select()
+	radTheme3 = gooi.newRadio("Theme 3", "grpTheme", 50, 130, 150, 30):setGroup("options")
+
+	btnReturn = gooi.newButton("Return", width() - 110, height() - 40, 100, 30):setGroup("options")
+
+	radBg1 = gooi.newRadio("Background 1", "grpBG", 220, 50, 200, 30):setGroup("options"):select()
+	radBg2 = gooi.newRadio("Background 2", "grpBG", 220, 90, 200, 30):setGroup("options")
+	radBg3 = gooi.newRadio("Background 3", "grpBG", 220, 130, 200, 30):setGroup("options")
+	
+	chbAutosave = gooi.newCheck("Save animation when playing", 50, 170, 370, 30):setGroup("options"):change()
 	
 	-- Open gooi:
-	gooi.newButton("btnOpenThis", "Open this", width() - 120, height() - 40, 110, 30, imagesDir.."n.png", "opening")
-	gooi.newButton("btnCancelOpen", "Cancel", width() - 240, height() - 40, 110, 30, imagesDir.."n.png", "opening").bgColor = {255, 0, 0, 127}
+	btnOpenThis = gooi.newButton("Open this", width() - 110, height() - 40, 100, 30):setGroup("opening")
+	btnCancelOpen = gooi.newButton("Cancel", width() - 220, height() - 40, 100, 30):setGroup("opening"):bg("#ff000088")
 	availableAnims = {}
 
 	gooi.setGroupEnabled("saving", false)
@@ -209,161 +273,163 @@ function love.load()
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
 	local function checkAutoAnim()
-		gooi.get("btnAA"):setEnabled(gooi.get("chbAA").checked)
-		gooi.get("chbCyclic"):setEnabled(gooi.get("chbAA").checked)
-		gooi.get("spiStep"):setEnabled(gooi.get("chbAA").checked)
+		btnAA:setEnabled(chbAA.checked)
+		chbCyclic:setEnabled(chbAA.checked)
+		spiStep:setEnabled(chbAA.checked)
 	end
 	local function returnFromOpening()
 		gooi.setGroupEnabled("open", false)
 		gooi.setGroupEnabled("new", false)
 		gooi.setGroupEnabled("options", false)
 		gooi.setGroupEnabled("editing", true)
-		gooi.get("btnAA"):setEnabled(gooi.get("chbAA").checked)
-		gooi.get("chbCyclic"):setEnabled(gooi.get("chbAA").checked)
+		btnAA:setEnabled(chbAA.checked)
+		chbCyclic:setEnabled(chbAA.checked)
 		checkAutoAnim()
 		state = STATE_EDITING
 	end
 	function playOrStop(c)
 		playing = not playing
-		c.bgColor = {0, 255, 0, 127}
-		c.image = imgRight
+		c:bg({0, 255, 0, 127})
+		c.icon = imgRight
 		currentFrameIndex = 1
 		analAnim:reset()
 		if playing then
 			analAnim:play()
-			c.bgColor = {255, 0, 0, 127}
-			c.image = imgStop
+			c:bg({255, 0, 0, 127})
+			c.icon = imgStop
 		end
 	end
-	local function callSave(c)
+	function callSave(c)
 		gooi.setGroupEnabled("saving", true)
 		gooi.setGroupVisible("saving", true)
 		gooi.setGroupEnabled("editing", false)
 		state = STATE_SAVING
 	end
 	function performSave(c)
-		imgAnalAnim, info = animManager.saveAnimation(gooi.get("textName").text, frames, finalW, finalH)
-		analAnim = newAnimation(imgAnalAnim, info.fW, info.fH, gooi.get("spiSpeed").value, #frames)
+		print(finalW, finalH)
+		imgAnalAnim, info = animManager.saveAnimation(textName.text, frames, finalW, finalH)
+		local millis = sliSpeed.value
+		analAnim = newAnimation(imgAnalAnim, info.fW, info.fH, millis, #frames)
 		gooi.setGroupEnabled("saving", false)
 		gooi.setGroupEnabled("editing", true)
 		checkAutoAnim()
-		gooi.get("btnSave"):setEnabled(false)
+		btnSave:setEnabled(false)
 		animSaved = true
 		state = STATE_EDITING
 	end
 	function setFillMode4(c)
 		fillMode = "4"
-		c.bgColor = {255, 127, 0, 127}
-		c.image = imgFill4
+		c:bg({255, 127, 0, 127})
+		c.icon = imgFill4
 	end
 	function setFillMode8(c)
 		fillMode = "8"
-		c.bgColor = {255, 255, 0, 127}
-		c.image = imgFill8
+		c:bg({255, 255, 0, 127})
+		c.icon = imgFill8
 	end
 	function setNoFillMode(c)
 		fillMode = nil
-		c.bgColor = {127, 127, 127, 127}
-		c.image = imgFill
+		c:bg({127, 127, 127, 127})
+		c.icon = imgFill
 	end
-	gooi.get("btnCopyL"):onRelease(function(c) copyPrevious() notifyNotSaved() end)
-	gooi.get("btnCopyR"):onRelease(function(c) copyNext()     notifyNotSaved() end)
-	gooi.get("btnPrev"):onRelease(function(c)  frameLeft() end)
-	gooi.get("btnNext"):onRelease(function(c)  frameRight() end)
-	gooi.get("btnPlay"):onRelease(function(c)
+	btnCopyL:onRelease(function(c) copyPrevious() end)
+	btnCopyR:onRelease(function(c) copyNext() end)
+	btnPrev:onRelease(function(c)  frameLeft() end)
+	btnNext:onRelease(function(c)  frameRight() end)
+	btnPlay:onRelease(function(c)
 		playOrStop(c)
-		print(tostring(gooi.get("chbAutosave").checked))
-		if gooi.get("chbAutosave").checked then
+		--print(tostring(chbAutosave.checked))
+		if chbAutosave.checked then
 			if animSaved then
 				performSave()
 			end
 		end
 	end)
-	gooi.get("chbLoop"):onRelease(function(c)
+	chbLoop:onRelease(function(c)
 		analAnim.mode = 1
 		if not c.checked then
 			analAnim.mode = 2
 		end
 	end)
-	gooi.get("btnSave"):onRelease(function(c)
+	btnSave:onRelease(function(c)
 		if animSaved then
 			performSave(c)
 		else
 			callSave(c)
 		end
 	end)
-	gooi.get("btnSaveAs"):onRelease(function(c)
+	btnSaveAs:onRelease(function(c)
 		callSave(c)
 	end)
-	gooi.get("btnDel"):onRelease(function(c)
+	btnDel:onRelease(function(c)
 		deleteFrame()
 		notifyNotSaved()
 	end)
-	gooi.get("btnAdd"):onRelease(function(c)
+	btnAdd:onRelease(function(c)
 		addNewFrame()
 		notifyNotSaved()
 	end)
-	gooi.get("btnNew"):onRelease(function(c)
+	btnNew:onRelease(function(c)
 		gooi.setGroupEnabled("new", true)
 		gooi.setGroupEnabled("saving", true)
 		gooi.setGroupEnabled("editing", false)
-		gooi.get("lblName"):setVisible(false)
-		gooi.get("textName"):setVisible(false)
-		gooi.get("btnCancelSave"):setVisible(false)
-		gooi.get("btnConfirmSave"):setVisible(false)
+		lblName:setVisible(false)
+		textName:setVisible(false)
+		btnCancelSave:setVisible(false)
+		btnConfirmSave:setVisible(false)
 		state = STATE_NEW
 	end)
-	gooi.get("btnOpen"):onRelease(function(c)
+	btnOpen:onRelease(function(c)
 		gooi.setGroupEnabled("editing", false)
 		gooi.setGroupEnabled("opening", true)
 		availableAnims = animManager.loadAvailable()
-		gooi.get("btnOpenThis"):setEnabled(not (#availableAnims == 0))
+		btnOpenThis:setEnabled(not (#availableAnims == 0))
 		state = STATE_OPENING
 	end)
-	gooi.get("btnCancelSave"):onRelease(function(c)
+	btnCancelSave:onRelease(function(c)
 		gooi.setGroupEnabled("saving", false)
 		gooi.setGroupEnabled("editing", true)
 		checkAutoAnim()
 		state = STATE_EDITING
 	end)
-	gooi.get("btnCancelOpen"):onRelease(function(c)
+	btnCancelOpen:onRelease(function(c)
 		returnFromOpening()
 	end)
-	gooi.get("btnOpenThis"):onRelease(function(c)
+	btnOpenThis:onRelease(function(c)
 		setOpenedAnim()
 		returnFromOpening()
 	end)
-	gooi.get("btnConfirmSave"):onRelease(function(c)
+	btnConfirmSave:onRelease(function(c)
 		performSave(c)
 	end)
 	-- Mirrors:
-	gooi.get("btnMX"):onRelease(function(c)
+	btnMX:onRelease(function(c)
 		mirrorX = not mirrorX
-		c.bgColor = {127, 127, 127, 127}
+		c:bg({127, 127, 127, 127})
 		if mirrorX then
-			c.bgColor = {0, 255, 0, 127}
+			c:bg({0, 255, 0, 127})
 		end
 	end)
-	gooi.get("btnMY"):onRelease(function(c)
+	btnMY:onRelease(function(c)
 		mirrorY = not mirrorY
-		c.bgColor = {127, 127, 127, 127}
+		c:bg({127, 127, 127, 127})
 		if mirrorY then
-			c.bgColor = {0, 255, 0, 127}
+			c:bg({0, 255, 0, 127})
 		end
 	end)
-	gooi.get("btnCancelNew"):onRelease(function(c)
+	btnCancelNew:onRelease(function(c)
 		gooi.setGroupEnabled("new", false)
 		gooi.setGroupEnabled("saving", false)
 		gooi.setGroupEnabled("editing", true)
 		checkAutoAnim()
 		state = STATE_EDITING
 	end)
-	gooi.get("btnOkNew"):onRelease(function(c)
-		setNewAnim(gooi.get("spiFramesNum").value, gooi.get("spiNewW").value, gooi.get("spiNewH").value)
+	btnOkNew:onRelease(function(c)
+		setNewAnim(spiFramesNum.value, spiNewW.value, spiNewH.value)
 		checkAutoAnim()
 		state = STATE_EDITING
 	end)
-	gooi.get("btnAA"):onRelease(function(c)
+	btnAA:onRelease(function(c)
 		local sense = 1
 
 		if shiftDown() then sense = -1 end
@@ -373,16 +439,16 @@ function love.load()
 		if aaDirection > 8 then aaDirection = 1 end
 		if aaDirection < 1 then aaDirection = 8 end
 	end)
-	gooi.get("chbAA"):onRelease(function(c)
+	chbAA:onRelease(function(c)
 		checkAutoAnim()
 	end)
-	gooi.get("btnReturn"):onRelease(function(c)
+	btnReturn:onRelease(function(c)
 		gooi.setGroupEnabled("options", false)
 		gooi.setGroupEnabled("editing", true)
 		checkAutoAnim()
 		state = STATE_EDITING
 	end)
-	gooi.get("btnFill"):onRelease(function(c)
+	btnFill:onRelease(function(c)
 		if not fillMode then
 			setFillMode4(c)
 		elseif fillMode == "4" then
@@ -391,17 +457,26 @@ function love.load()
 			setNoFillMode(c)
 		end
 	end)
-	gooi.get("btnChangePalette"):onRelease(function(c)
+	btnChangePalette:onRelease(function(c)
 		palette.change()
 		c.label = "Palette "..palette.which
 		brush.color = palette.getColor(palette.xColor, palette.yColor)
+		c:bg({r(), r(), r(), 127})
 	end)
-	gooi.get("btnOptions"):onRelease(function(c)
+	btnOptions:onRelease(function(c)
 		gooi.setGroupEnabled("editing", false)
 		gooi.setGroupEnabled("options", true)
 		state = STATE_OPTIONS
 	end)
-	gooi.get("btnQuit"):onRelease(function(c) exit() end)
+	--btnQuit:onRelease(function(c) exit() end)
+
+	-- Load first "ctrl+z" state:
+	table.insert(states, {
+		frame = copyCurrent()
+	})
+
+	btnSave:setEnabled(false)
+	gooi.desktopMode()
 end
 
 
@@ -419,20 +494,32 @@ function love.update(dt)
 	gooi.update(dt)
 
 	if state == STATE_EDITING then
-		if mo.isDown(MOUSE_LEFT) then
+		if mo.isDown(MOUSE_LEFT) and not gooi.showingDialog then
 			setPixel(mo.getX(), mo.getY(), brush.color, true)
 			updateAnchor(mo.getPosition())
 		end
-		gooi.get("sliAlpha").bgColor = brush.color
-		local a = math.floor(gooi.get("sliAlpha").value * 255)
-		gooi.get("sliAlpha").bgColor[4] = a
-		gooi.get("lblInd").label = tostring(a)
+		sliAlpha:bg(brush.color)
+		local a = math.floor(sliAlpha.value * 255)
+		sliAlpha.bgColor[4] = a
+		lblInd.text = tostring(a)
 
-		local btn = gooi.get("btnSave")
+		lblCopySD:setVisible(btnCopyCB:overIt())
+
+		local btn = btnSave
 		btn.image = imgSave
 		if shiftDown() then
 			btn.image = imgSaveAs
 		end
+
+		if just_copied then
+			timerCopied = timerCopied + dt
+			if timerCopied >= 1 then
+				timerCopied = 0
+				just_copied = false
+				btnCopyCB:setText("Copy SD"):bg(component.style.bgColor)
+			end
+		end
+
 		-- Update color picked:
 		if palette.mouseInside() then
 			if mo.isDown(MOUSE_LEFT) then
@@ -460,7 +547,7 @@ function love.update(dt)
 			if colorIndicator[i] < 0 then colorIndicator[i] = 255 end
 		end
 		-- Update canvas position:
-		if mo.isDown(MOUSE_MIDDLE) then
+		if mo.isDown(MOUSE_MIDDLE) and not gooi.showingDialog then
 			xCanvas = mo.getX() - dispCX
 			yCanvas = mo.getY() - dispCY
 		end
@@ -469,11 +556,12 @@ function love.update(dt)
 			analAnim:update(dt)
 			currentFrameIndex = analAnim.position
 			if not analAnim.playing then
-				playOrStop(gooi.get("btnPlay"))
+				playOrStop(btnPlay)
 			end
 		end
 		-- Animation:
-		analAnim:setFramesDelay(gooi.get("spiSpeed").value)
+		analAnim:setFramesDelay(sliSpeed.value)
+		lblSpeed:setText(string.sub(tostring(sliSpeed.value), 0, 4))
 	elseif state == STATE_SAVING then
 
 	elseif state == STATE_OPENING then
@@ -495,13 +583,13 @@ end
 function love.draw()
 	-- Background dude:
 	gr.setColor(255, 255, 255)
-	if gooi.get("radTheme1").selected  then
+	if radTheme1.selected  then
 		gr.setBackgroundColor(bgC1)
 		gr.draw(bgDude1, 135, height() - bgDude1:getHeight() * 30, 0, 30, 30)
-	elseif gooi.get("radTheme2").selected  then
+	elseif radTheme2.selected  then
 		gr.setBackgroundColor(bgC2)
 		gr.draw(bgDude2, 400, 200, 0, 20, 20)
-	elseif gooi.get("radTheme3").selected  then
+	elseif radTheme3.selected  then
 		gr.setBackgroundColor(bgC3)
 		gr.draw(bgDude3, width() - bgDude3:getWidth() * 16, 0, 0, 16, 16)
 	end
@@ -511,7 +599,7 @@ function love.draw()
 		drawCurrentFrame()
 
 		-- Grid:
-		if gooi.get("chbGrid").checked then
+		if chbGrid.checked then
 			gr.setLineStyle("rough")
 			gr.setColor(127, 127, 127, 150)
 			for i = 1, w - 1 do-- Vertical lines:
@@ -547,17 +635,14 @@ function love.draw()
 		local p = palette
 		-------------------------------
 		gr.setColor(12, 183, 242)
-		gr.rectangle("line", p.x - 1, p.y - 1, p.w() + 2, p.h() + 2)
+		--gr.rectangle("line", p.x - 1, p.y - 1, p.w() + 2, p.h() + 2)
 		
 		-- Toolbar margin:
-		gr.setColor(0, 0, 0, 100)
+		gr.setColor(0, 0, 0, 180)
 		gr.rectangle("fill", 0, 0, width(), tbUpLimit)
 		gr.rectangle("fill", 0, tbUpLimit, tbLeftLimit, height() - tbUpLimit)
 		
 		gr.setColor(6, 96, 128)
-		-- Just some separators:
-		gr.line(10, 290, 120, 290)
-		gr.line(570, 10, 570, 80)
 
 		-- Palette:
 		gr.setColor(255, 255, 255)
@@ -568,7 +653,7 @@ function love.draw()
 		gr.rectangle("line", p.xColor, p.yColor, p.scale(), p.scale())
 		gr.setLineStyle("smooth")
 		-- Autoanimation:
-		local btn = gooi.get("btnAA")
+		local btn = btnAA
 		-- Mini map:
 
 		if w * pS > width() or h * pS > height() then
@@ -595,12 +680,6 @@ function love.draw()
 
 		gr.setColor(255, 255, 255)
 
-		---------------------------------------------
-		---------------------------------------------
-		gooi.draw("editing")
-		---------------------------------------------
-		---------------------------------------------
-
 		-- Frame indicator:
 		prevFont = gr.getFont()
 		gr.setFont(fontLetter)
@@ -613,12 +692,18 @@ function love.draw()
 		gr.setFont(prevFont)
 
 		gr.setColor(255, 255, 255)
-		if not gooi.get("chbAA").checked then
+		if not chbAA.checked then
 			gr.setColor(127, 127, 127)
 		end
 		gr.draw(imgAAArrow, btn.x + btn.w / 2, btn.y + btn.h / 2,
 			math.rad(aaRotation), 1, 1, imgAAArrow:getWidth() / 2, imgAAArrow:getHeight() / 2)
 		gr.setColor(255, 0, 0)
+
+		---------------------------------------------
+		---------------------------------------------
+		gooi.draw("editing")
+		---------------------------------------------
+		---------------------------------------------
 	
 	elseif state == STATE_SAVING then
 		gooi.draw("saving")
@@ -627,26 +712,37 @@ function love.draw()
 		gooi.draw("saving")
 		gooi.draw("new")
 		drawMatrixFrame()
-		gr.print("New animation:", width() - 450, height() - 200)
 	elseif state == STATE_OPENING then
 		gooi.draw("opening")
 		gr.print("Your animations:", 10, 10)
+		local prevFont = gr.getFont()
+		gr.setFont(gooi.getFont())
+		gr.setLineStyle("smooth")
 		for i = 1, #availableAnims do
 			local item = availableAnims[i]
 			gr.setColor(12, 183, 242, 127)
-			local mode = "line"
+			local w, h = 200, 25
 			if item.selected then
-				mode = "fill"
+				gr.rectangle("fill",
+					item.x,
+					item.y,
+					w,
+					h, 10, 10)
 			end
-			gr.rectangle(mode, item.x - 5, item.y - 5,
-				gooi.getFont():getWidth(item.name) + 10,
-				gooi.getFont():getHeight() + 10)
+			gr.rectangle("line",
+				item.x,
+				item.y,
+				w,
+				h, 10, 10)
 			gr.setColor(255, 255, 255)
-			gr.print(item.name, item.x, item.y)
+			gr.print(item.name,
+				math.floor(item.x + w / 2 - gooi.getFont():getWidth(item.name) / 2),
+				math.floor(item.y + h / 2 - gooi.getFont():getHeight() / 2))
 		end
+		gr.setFont(prevFont)
 	elseif state == STATE_OPTIONS then
-		gr.print("Select a theme:", gooi.get("radTheme1").x, 10)
-		gr.print("Anim background:", gooi.get("radBg1").x, 10)
+		gr.print("Select a theme:", radTheme1.x, 10)
+		gr.print("Anim background:", radBg1.x, 10)
 		gr.draw(sBgImage(), 450, 32)
 		gooi.draw("options")
 	end
@@ -665,10 +761,21 @@ end
 
 
 function drawCurrentFrame()
+	gr.setLineWidth(1)
 	gr.setCanvas(bgC)
 	gr.clear(0, 0, 0, 1)
 	-- Draw background for the canvas:
-	gr.draw(sBgImage(), gr.newQuad(xCanvas, yCanvas, w * pS, h * pS, sBgImage():getWidth(), sBgImage():getHeight()))
+	gr.draw(
+		sBgImage(),
+		gr.newQuad(
+			xCanvas,
+			yCanvas,
+			w * pS,
+			h * pS,
+			sBgImage():getWidth(),
+			sBgImage():getHeight()
+		)
+	)
 	
 	gr.setCanvas()
 	gr.setColor(255, 255, 255)
@@ -696,9 +803,9 @@ function drawCurrentFrame()
 end
 
 function sBgImage()
-	if gooi.get("radBg1").selected then return bgImage1 end
-	if gooi.get("radBg2").selected then return bgImage2 end
-	if gooi.get("radBg3").selected then return bgImage3 end
+	if radBg1.selected then return bgImage1 end
+	if radBg2.selected then return bgImage2 end
+	if radBg3.selected then return bgImage3 end
 end
 
 function drawMatrixFrame()
@@ -707,8 +814,8 @@ function drawMatrixFrame()
 	local theFNumber = #frames
 
 	if state == STATE_NEW then
-		theW, theH = gooi.get("spiNewW").value, gooi.get("spiNewH").value
-		theFNumber = gooi.get("spiFramesNum").value
+		theW, theH = spiNewW.value, spiNewH.value
+		theFNumber = spiFramesNum.value
 	end
 
 	local smaller, scale = theW, 1
@@ -722,7 +829,7 @@ function drawMatrixFrame()
 			end 
 		end
 	end]]
-	local s = gooi.get("sliderSave")
+	local s = sliderSave
 	local widthDesired = s.value * (s.w - s.h)
 	local xDisp, yDisp = 0, 0
 	local x0, y0, indexX, indexY = s.x + s.h / 2, s.y + s.h * 2, 1, 1
@@ -763,12 +870,12 @@ end
 
 function setOpenedAnim()
 	currentFrameIndex = 1
-	frames, imgAnalAnim, info = animManager.openAnimation(animManager.getSelectedItem().name)
+	frames, imgAnalAnim, info, finalW, finalH = animManager.openAnimation(animManager.getSelectedItem().name)
 	loadFrames(frames, imgAnalAnim, info)
 	setBoundsPixel()
 	setBoundsCanvas()
 	analAnim.mode = 1
-	if not gooi.get("chbLoop").checked then
+	if not chbLoop.checked then
 		analAnim.mode = 2
 	end
 end
@@ -789,7 +896,8 @@ end
 function loadFrames(f, img, info)
 	if f then
 		frames = f
-		analAnim = newAnimation(img, info.fW, info.fH, gooi.get("spiSpeed").value, info.frameNum)
+		local millis = sliSpeed.value
+		analAnim = newAnimation(img, info.fW, info.fH, millis, info.frameNum)
 	else
 		frames = animManager.createFrames(10, 16, 16)
 		analAnim = newAnimation(love.graphics.newImage(love.image.newImageData(16 * #frames, 16)), 16, 16, 10, #frames)
@@ -865,6 +973,7 @@ function flood(x, y, cF, tC, rC)
 		while #stack > 0 do
 			local p = pop(stack)
 			x, y = p.x, p.y
+			--print(x, y)
 			
 			if sameColor(cF[y][x].color, tC) then
 				-- 4 directions flood fill:
@@ -922,9 +1031,9 @@ function sameColor(c1, c2)
 end
 
 function drawAutoAnim(fixedX, fixedY, fW, fH, cF, c)
-	if gooi.get("chbAA").checked then
+	if chbAA.checked then
 		local dx, dy = fixedX, fixedY -- Displacements.
-		local s = gooi.get("spiStep").value
+		local s = spiStep.value
 		for i = currentFrameIndex + 1, #frames do
 			local f = frames[i]
 
@@ -941,7 +1050,7 @@ function drawAutoAnim(fixedX, fixedY, fW, fH, cF, c)
 				This basically says: take whatever coordinate to the first
 				frame coordinates, so we don't we a nil error:
 			]]
-			if gooi.get("chbCyclic").checked then
+			if chbCyclic.checked then
 				if dx > fW then
 					dx = math.abs(dx) % fW
 					if dx == 0 then dx = fW end
@@ -1021,7 +1130,8 @@ function bresenham(x1, y1, x2, y2, fW, fH, currentFrame, color, preDrawing)
 end
 
 function notifyNotSaved()
-	gooi.get("btnSave"):setEnabled(true)
+	btnSave:setEnabled(true)
+	animSaved = false
 end
 
 function getFixedPosition(xm, ym)
@@ -1050,8 +1160,8 @@ function setBoundsCanvas(xZoom, yZoom)
 	if xZoom and yZoom then
 		----
 	end
-	xCanvas = (xCenter - xHalf + tbLeftLimit / 2)
-	yCanvas = (yCenter - yHalf + tbUpLimit / 2)
+	xCanvas = math.floor(xCenter - xHalf + tbLeftLimit / 2)
+	yCanvas = math.floor(yCenter - yHalf + tbUpLimit / 2)
 	bgC = gr.newCanvas(pS * w - 1, pS * h - 1)-- Background canvas.
 end
 
@@ -1065,13 +1175,13 @@ function setBoundsPixel()
 	--pS = math.floor((largerRef / largerSide) * .5)
 	minPS = 4
 	maxPS = 64
-	pS = minPS
+	pS = 16
 
 	if pS < minPS then pS = minPS end
 	if pS > maxPS then pS = maxPS end
 	
-	tbUpLimit = 90
-	tbLeftLimit = 130
+	tbUpLimit = 75
+	tbLeftLimit = 105
 	dispCX, dispCY = 0, 0
 end
 
@@ -1100,6 +1210,7 @@ function copyPrevious()
 				f[y][x]:setColor(pF[y][x].color)
 			end
 		end
+		notifyNotSaved()
 	end
 end
 
@@ -1112,7 +1223,22 @@ function copyNext()
 				f[y][x]:setColor(pF[y][x].color)
 			end
 		end
+		notifyNotSaved()
 	end
+end
+
+function copyCurrent()
+	local f = frames[currentFrameIndex]
+	local newFrame = animManager.newFrame(w, h)
+
+	for i = 1, #f do
+		newFrame[i] = {}
+		for j = 1, #f[i] do
+			newFrame[i][j] = pixel.new(0, 0, 0, 0, j, i)
+			newFrame[i][j]:setColor(f[i][j]:getColor())
+		end
+	end
+	return newFrame
 end
 
 function deleteFrame()
@@ -1125,6 +1251,7 @@ function deleteFrame()
 		if currentFrameIndex > #frames then
 			currentFrameIndex = #frames
 		end
+		notifyNotSaved()
 	end
 end
 
@@ -1134,6 +1261,7 @@ function addNewFrame()
 	else
 		table.insert(frames, animManager.newFrame(w, h))
 	end
+	notifyNotSaved()
 end
 
 function clearFrame(i)
@@ -1143,17 +1271,19 @@ function clearFrame(i)
 			f[i][j]:setColor(0, 0, 0, 0)
 		end
 	end
+	notifyNotSaved()
 end
 
 function overAnItem(mx, my)
 	local selected = nil
+	local w, h = 200, 25
 	for i = 1, #availableAnims do
 		local item = availableAnims[i]
 		if not (
 			mx <= item.x - 5 or
-			mx >= item.x + gooi.getFont():getWidth(item.name) + 10 or
+			mx >= item.x + 200 + 10 or
 			my <= item.y - 5 or
-			my >= item.y + gooi.getFont():getHeight() + 10
+			my >= item.y + 25 + 10
 		)
 		then
 			selected = item
@@ -1183,18 +1313,20 @@ end
 function love.mousepressed(x, y, button)
 	gooi.pressed()
 	if state == STATE_EDITING then
-		if button == "l" then
-			if palette.mouseInside() then
-				palette.pressed = true
-				brush.color = palette.getColor()
-				palette.changeSquare(x, y)
-			else
-				setPixel(x, y, brush.color)
-				updateAnchor(x, y)
+		if not gooi.showingDialog then
+			if button == "l" then
+				if palette.mouseInside() then
+					palette.pressed = true
+					brush.color = palette.getColor()
+					palette.changeSquare(x, y)
+				else
+					setPixel(x, y, brush.color)
+					updateAnchor(x, y)
+				end
+			elseif button == MOUSE_MIDDLE then-- Drag canvas:
+				dispCX = x - xCanvas
+				dispCY = y - yCanvas
 			end
-		elseif button == MOUSE_MIDDLE then-- Drag canvas:
-			dispCX = x - xCanvas
-			dispCY = y - yCanvas
 		end
 	elseif state == STATE_OPENING then
 		if overAnItem(x, y) then
@@ -1206,6 +1338,10 @@ end
 function love.mousereleased(x, y, button)
 	gooi.released()
 	palette.pressed = false
+
+	if insideCanvas(mo.getX(), mo.getY()) then
+		saveState()
+	end
 end
 
 -------------------------------------------------
@@ -1214,20 +1350,28 @@ function love.threaderror(thread, errorstr)
 end
 -------------------------------------------------
 
-function love.textinput(key, code) gooi.textinput(key, code) end
+function love.textinput(text) gooi.textinput(text) end
 
 function love.keypressed(key)
 	gooi.keypressed(key)
 	if state == STATE_EDITING then
 		-- Fill mode:
 		if key == "b" then
-			setFillMode4(gooi.get("btnFill"))
+			setFillMode4(btnFill)
 			if ctrlDown() then
-				setFillMode8(gooi.get("btnFill"))
+				setFillMode8(btnFill)
 			end
 		elseif kb.isDown("b") then
 			if isCtrl(key) then
-				setFillMode8(gooi.get("btnFill"))
+				setFillMode8(btnFill)
+			end
+		elseif key == "z" then
+			if ctrlDown() then
+				loadPrevState()
+			end
+		elseif key == "y" then
+			if ctrlDown() then
+				loadNextState()
 			end
 		end
 		-- Move throught frames:
@@ -1239,7 +1383,7 @@ function love.keypressed(key)
 		-- Some shortcuts:
 		if ctrlDown() then
 			if key == "g" then-- Show or hide grid:
-				gooi.get("chbGrid"):change()
+				chbGrid:change()
 			elseif key == "f" then-- First frame:
 				currentFrameIndex = 1;
 			elseif key == "l" then-- Last one:
@@ -1263,7 +1407,7 @@ function love.keypressed(key)
 			if key == "c" then
 				palette.change()
 				brush.color = palette.getColor(palette.xColor, palette.yColor)
-				gooi.get("btnChangePalette").label = "Palette "..palette.which
+				btnChangePalette.label = "Palette "..palette.which
 			end
 		end
 	end
@@ -1272,13 +1416,13 @@ end
 function love.keyreleased(key)
 	if isCtrl(key) then
 		if kb.isDown("b") then
-			setFillMode4(gooi.get("btnFill"))
+			setFillMode4(btnFill)
 		else
-			setNoFillMode(gooi.get("btnFill"))
+			setNoFillMode(btnFill)
 		end
 	end
 	if key == "b" then
-		setNoFillMode(gooi.get("btnFill"))
+		setNoFillMode(btnFill)
 	end
 end
 
@@ -1289,10 +1433,36 @@ function updateAnchor(x, y)
 end
 
 function love.resize(w, h)
-	gooi.get("btnFS"):setBounds(width() - 120, 10, 50, 30)
-	gooi.get("btnOptions"):setBounds(width() - 60, 10, 50, 30)
-	gooi.get("btnQuit"):setBounds(width() - 60, 50, 50, 30)
-	gooi.get("btnReturn"):setBounds(width() - 120, height() - 40, 110, 30)
+	btnOkNew:setBounds(width() - 110, height() - 40, 100, 30)
+	btnCancelNew:setBounds(width() - 220, height() - 40, 100, 30)
+
+	btnOpenThis:setBounds(width() - 110, height() - 40, 100, 30)
+	btnCancelOpen:setBounds(width() - 220, height() - 40, 100, 30);
+
+	btnCancelSave:setBounds(width() - 220, height() - 40, 100, 30)
+	btnConfirmSave:setBounds(width() - 110, height() - 40, 100, 30)
+	lblName:setBounds(width() - 540, height() - 40, 100, 30)
+	textName:setBounds(width() - 430, height() - 40, 200, 30)
+
+	lblCopySD:setBounds(230, height() - 30, width() - 235, 25)
+
+	btnReturn:setBounds(width() - 110, height() - 40, 100, 30)
+
+	setBoundsCanvas()
+end
+
+function love.quit()
+	if not animSaved then
+		gooi.confirm("Save changes?", function()
+			callSave(btnSaveAs)
+		end, function()
+			animSaved = true
+			exit()
+		end)
+		return true
+	else
+		return false
+	end
 end
 
 function openAnimsFolder()
@@ -1311,6 +1481,32 @@ function openAnimsFolder()
 		os.execute("explorer "..love.filesystem.getSaveDirectory())
 	end
 end
+
+-- For ctrl + Z:
+
+function saveState()
+	table.insert(states, {
+		frame = copyCurrent()
+	})
+	indexStates = #states
+	--print(#states)
+end
+
+function loadPrevState()
+	indexStates = indexStates - 1;
+	if indexStates < 1 then indexStates = 1 end
+
+	frames[currentFrameIndex] = states[indexStates].frame
+end
+
+function loadNextState()
+	indexStates = indexStates + 1;
+	if indexStates > #states then indexStates = #states end
+
+	frames[currentFrameIndex] = states[indexStates].frame
+end
+
+function r() return love.math.random(0, 255) end
 
 function isShift(key)
 	return key == "lshift" or key == "rshift"

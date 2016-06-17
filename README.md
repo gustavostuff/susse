@@ -2,7 +2,7 @@
 
 [![License](http://img.shields.io/:license-MIT-blue.svg)](http://doge.mit-license.org)
 
-![editor](http://s8.postimg.org/g99frtt0l/finalfinal.gif)
+![editor](https://s31.postimg.org/r8k7u8ydn/ss_susse.png)
 
 How to use it with the keyboard:
 
@@ -15,5 +15,7 @@ How to use it with the keyboard:
 * Click while pressing Ctrl + B will perform an 8-directional fill
 * Click while pressing Shift draws a line
 * Mouse wheel to zoom in or out
+* Ctrl + Z for undo
+* Ctrl + Y for redo
 
 Süsse is still a work in progress, thanks!

@@ -24,16 +24,32 @@ THE SOFTWARE.
 
 component = {}
 component.__index = component
-component.defaultBg = {12, 183, 242, 127}
-component.defaultFg = {255, 255, 255, 255}
-component.toolTipFont = love.graphics.newFont(love.graphics.getWidth() / 75)
+component.style = {
+	bgColor = {12, 183, 242, 127}, -- LOVE blue
+	fgColor = {255, 255, 255, 255},
+	tooltipFont = love.graphics.newFont(love.graphics.getWidth() / 60),
+	round = .25,
+	roundInside = .25,
+	showBorder = false,
+	borderColor = {12, 183, 242, 255},
+	borderWidth = 2,
+	font = love.graphics.newFont(love.graphics.getWidth() / 70),
+	mode3d = false,
+	glass = false
+}
+
+local currId = -1
+function genId()
+	currId = currId + 1
+	return currId;
+end
 
 ----------------------------------------------------------------------------
 --------------------------   Component creator  ----------------------------
 ----------------------------------------------------------------------------
 function component.new(id, t, x, y, w, h, group)
 	local c = {}
-	c.id = id
+	c.id = genId()
 	c.type = t
 	c.x = x
 	c.y = y
@@ -43,11 +59,18 @@ function component.new(id, t, x, y, w, h, group)
 	c.visible = true
 	c.hasFocus = false
 	c.pressed = false
-	c.bgColor = component.defaultBg
-	c.fgColor = component.defaultFg
 	c.group = group or "default"
-	c.showToolTip = false
-	c.font = nil
+	c.tooltip = nil
+	c.smallerSide = c.h
+	if c.w < c.h then
+		c.smallerSide = c.w
+	end
+	c.timerTooltip = 0
+	c.showTooltip = false
+	function c:setTooltip(text)
+		self.tooltip = text
+		return self
+	end
 	c.touch = nil-- Stores the touch which is on this component.
 	c.opaque = true-- If false, the component base will never be drawn.
 	c.events = {p = nil, r = nil, m = nil}
@@ -63,95 +86,123 @@ function component.new(id, t, x, y, w, h, group)
 		c.events.m = f
 		return self
 	end
-	c.borderW = c.h / 15
-	c.radiusCorner = c.h / 8
-	if c.w < c.h then
-		c.borderW = c.w / 20
-		c.radiusCorner = c.w / 8
+	function c:bg(color)
+		if not color then
+			return self.bgColor
+		end
+		if type(color) == "string" then
+			color = gooi.toRGBA(color)
+		end
+		self.bgColor = color
+		self.borderColor = {color[1], color[2], color[3], 255}
+		self:make3d()
+		return self
 	end
-	-- Experimental:
-	c.showBorder = true
-	c.resCorner = 9
-	function c:setBorderRes(mode)
-		if mode == "high" then
-			c.resCorner = 5
-		elseif mode == "low" then
-			c.resCorner = 19
-		else
-			c.resCorner = 5
-			error("Invalid border resolution mode '"..mode.."', expecting 'high' or 'low'")
+	function c:fg(color)
+		if not color then
+			return self.fgColor
+		end
+		self.fgColor = color
+		if type(color) == "string" then
+			self.fgColor = gooi.toRGBA(color)
 		end
 		return self
 	end
-	c.toolTip = nil
-	c.timerToolTip = 0
-	function c:setToolTip(text)
-		self.toolTip = text
-	end
-	function c:generateCurveCorner()
-		local t = {}
-		for i = 180, 270, self.resCorner do -- Generate left-upper arc of points:
-			local x = self.x + self.radiusCorner + (self.radiusCorner * math.cos(math.rad(i)))
-			local y = self.y + self.radiusCorner + (self.radiusCorner * math.sin(math.rad(i)))
-			table.insert(t, x)
-			table.insert(t, y)
+	function c:roundness(r, ri)
+		if not r then return self.round, self.roundInside; end
+
+		if r < 0 then r = 0 end
+		if r > 1 then r = 1 end
+		self.round = r
+		if ri then
+			if ri < 0 then ri = 0 end
+			if ri > 1 then ri = 1 end
+			self.roundInside = ri
 		end
-		return t
-	end
-	function c:generateBorder()
-		-- Reset points:
-		self.ptsCorner = self:generateCurveCorner()
-		-- Generate mirror on X:
-		local ptsXR = {}
-		for i = #self.ptsCorner - 1, 1, - 2 do
-			local newXP = self.ptsCorner[i] + (self.x + self.w / 2 - self.ptsCorner[i]) * 2
-			table.insert(self.ptsCorner, newXP)
-			table.insert(self.ptsCorner, self.ptsCorner[i + 1])
-		end
-		-- On Y:
-		for i = #self.ptsCorner - 1, 1, - 2 do
-			local newYP = self.ptsCorner[i + 1] + (self.y + self.h / 2 - self.ptsCorner[i + 1]) * 2
-			table.insert(self.ptsCorner, self.ptsCorner[i])
-			table.insert(self.ptsCorner, newYP)
-		end
-		-- Remove points causing problems with love.graphics.polygon:
-		table.remove(self.ptsCorner, 1)
-		table.remove(self.ptsCorner, 1)
-		table.remove(self.ptsCorner, #self.ptsCorner / 4)
-		table.remove(self.ptsCorner, #self.ptsCorner / 4)
-		table.remove(self.ptsCorner, #self.ptsCorner / 2)
-		table.remove(self.ptsCorner, #self.ptsCorner / 2)
-		table.remove(self.ptsCorner, #self.ptsCorner / 2 + #self.ptsCorner / 4)
-		table.remove(self.ptsCorner, #self.ptsCorner / 2 + #self.ptsCorner / 4)
+
 		return self
 	end
+	function c:border(w, color, style)
+		if not w then return self.borderWidth, self.borderColor; end
+
+		self.borderWidth = w
+		self.borderColor = color or {12, 183, 242, 255}
+		if type(color) == "string" then
+			self.borderColor = gooi.toRGBA(color)
+			self.borderColor[4] = 255
+		end
+		self.borderStyle = style or "smooth"
+		self.showBorder = true
+		return self
+	end
+	function c:noGlass()
+		self.glass = false
+		return self
+	end
+	function c:no3D()
+		self.mode3d = false
+		return self
+	end
+	function c:setStyle(style)
+		self.borderWidth = style.borderWidth
+		self.round = style.round
+		self.roundInside = style.roundInside
+		self.showBorder = style.showBorder
+		self.borderColor = style.borderColor
+		self.mode3d = style.mode3d
+		self.glass = style.glass
+		self.bgColor = style.bgColor
+		self.fgColor = style.fgColor
+		self.tooltipFont = style.tooltipFont
+		self.font = style.font
+
+		if self.sons then
+			for k, v in pairs(self.sons) do
+				v.ref:setStyle(style)
+			end
+		end
+		
+		return self
+	end
+	c:setStyle(component.style)
+
+	function c:make3d()
+		-- For a 3D look:
+		self.colorTop = self.bgColor
+		self.colorBot = self.bgColor
+
+		self.colorTop = changeBrig(self.bgColor, 15)--colorManager.setBrightness(self.colorTop, 0.5)
+		self.colorBot = changeBrig(self.bgColor, -15)--colorManager.setBrightness(self.colorBot, 0.5)
+
+		self.colorTopHL = changeBrig(self.bgColor, 25)--colorManager.setBrightness(self.colorTop, 0.5)
+		self.colorBotHL = changeBrig(self.bgColor, -5)--colorManager.setBrightness(self.colorBot, 0.5)
+
+		self.imgData3D = love.image.newImageData(1, 2)
+		self.imgData3D:setPixel(0, 0, self.colorTop[1], self.colorTop[2], self.colorTop[3], self.colorTop[4])
+		self.imgData3D:setPixel(0, 1, self.colorBot[1], self.colorBot[2], self.colorBot[3], self.colorBot[4])
+
+		self.imgData3DHL = love.image.newImageData(1, 2)
+		self.imgData3DHL:setPixel(0, 0, self.colorTopHL[1], self.colorTopHL[2], self.colorTopHL[3], self.colorTopHL[4])
+		self.imgData3DHL:setPixel(0, 1, self.colorBotHL[1], self.colorBotHL[2], self.colorBotHL[3], self.colorBotHL[4])
+
+		self.img3D = love.graphics.newImage(self.imgData3D)
+		self.img3DHL = love.graphics.newImage(self.imgData3DHL)
+
+		self.img3D:setFilter("linear", "linear")
+		self.img3DHL:setFilter("linear", "linear")
+
+		self.imgDataGlass = love.image.newImageData(1, 2)
+		self.imgDataGlass:setPixel(0, 0, 255, 255, 255, 80)
+		self.imgDataGlass:setPixel(0, 1, 255, 255, 255, 40)
+		self.imgGlass = love.graphics.newImage(self.imgDataGlass)
+		self.imgGlass:setFilter("linear", "linear")
+	end
+
+	c:make3d()
 	
-	-- Actually create the border:
-	c:generateBorder()
-	----------------------------------------------------------
-	--print("points of "..c.id..": "..#c.ptsCorner / 2)
-	function c:drawBorder()
-		love.graphics.setLineWidth(self.borderW)
-		if self.showBorder then
-			love.graphics.setColor(self.bgColor[1], self.bgColor[2], self.bgColor[3])
-			if not self.enabled then
-				love.graphics.setColor(63, 63, 63)
-			end
-			if self.radiusCorner == 0 then
-				love.graphics.rectangle("line", self.x, self.y, self.w, self.h)
-			else
-				love.graphics.polygon("line", self.ptsCorner)
-				love.graphics.setColor(255,255,0)
-				--print(#self.ptsCorner)
-				--love.graphics.setPointStyle("rough")
-				--for i=1,#self.ptsCorner-1,2 do
-				--	love.graphics.point(self.ptsCorner[i],self.ptsCorner[i+1])
-				--end
-			end
-		end
-	end
 	return setmetatable(c, component)
 end
+
 
 ----------------------------------------------------------------------------
 --------------------------   Draw the component  ---------------------------
@@ -163,21 +214,21 @@ function component:draw()-- Every component has the same base:
 		local focusColorChange = 20
 		local fs = - 1
 		if not self.enabled then focusColorChange = 0 end
+		local newColor = self.bgColor
 		-- Generate bgColor for over and pressed:
 		if self:overIt() and self.type ~= "label" then
 			if not self.pressed then fs = 1 end
-			r, g, b = r + focusColorChange * fs, g + focusColorChange * fs, b + focusColorChange * fs
-			if self.toolTip then
-				self.timerToolTip = self.timerToolTip + love.timer.getDelta()
-				if self.timerToolTip >= 0.5 then
-					self.showToolTip = true
+			newColor = changeBrig(newColor, 20 * fs)
+			if self.tooltip then
+				self.timerTooltip = self.timerTooltip + love.timer.getDelta()
+				if self.timerTooltip >= 0.5 then
+					self.showTooltip = true
 				end
 			end
 		else
-			self.timerToolTip = 0
-			self.showToolTip = false
+			self.timerTooltip = 0
+			self.showTooltip = false
 		end
-		local newColor = self:fixColor(r, g, b, a)
 
 		love.graphics.setColor(newColor)
 
@@ -185,10 +236,104 @@ function component:draw()-- Every component has the same base:
 			love.graphics.setColor(63, 63, 63, self.bgColor[4])
 		end
 
-		drawRoundRec(self.x, self.y, self.w, self.h, self.radiusCorner)-- Magic function (thanks to Boolsheet!)
+		local radiusCorner = self.round * self.h / 2
+
+		function mask()
+			love.graphics.rectangle("fill",
+				math.floor(self.x),
+				math.floor(self.y),
+				math.floor(self.w),
+				math.floor(self.h),
+				radiusCorner,
+				radiusCorner,
+				50)
+		end
+		love.graphics.stencil(mask, "replace", 1)
+		love.graphics.setStencilTest("greater", 0)
+		local scaleY = 1
+		local img = self.img3D
+		if self:overIt() then
+			img = self.img3DHL
+			if self.pressed then
+				img = self.img3D
+				if self.type == "button" then
+					scaleY = scaleY * -1
+				end
+			end
+		end
+		-- Correct light effect when 2 modes are set:
+		if self.mode3d and self.glass then
+			scaleY = -1
+		end
+
+		if self.mode3d then
+			love.graphics.setColor(255, 255, 255, self.bgColor[4] or 255)
+			if not self.enabled then
+				love.graphics.setColor(0, 0, 0, self.bgColor[4] or 255)
+			end
+			love.graphics.draw(img,
+				self.x + self.w / 2,
+				self.y + self.h / 2,
+				0,
+				math.floor(self.w),
+				self.h / 2 * scaleY,
+				img:getWidth() / 2,
+				img:getHeight() / 2)
+
+		else
+			love.graphics.rectangle("fill",
+				math.floor(self.x),
+				math.floor(self.y),
+				math.floor(self.w),
+				math.floor(self.h),
+				radiusCorner,
+				radiusCorner,
+				50)
+		end
+
+		if self.glass then
+			love.graphics.setColor(255, 255, 255)
+			--[[
+				if self.mode3d then
+					love.graphics.draw(img,
+					self.x + self.w / 2,
+					self.y + self.h / 2,
+					0,
+					math.floor(self.w),
+					self.h / 2 * -1,
+					img:getWidth() / 2,
+					img:getHeight() / 2)
+				end
+			]]
+			love.graphics.draw(self.imgGlass,
+				self.x,
+				self.y,
+				0,
+				math.floor(self.w),
+				self.h / 4)
+		end
+		love.graphics.setStencilTest()
 
 		-- Border:
-		self:drawBorder()
+		love.graphics.setLineStyle(self.borderStyle or "smooth")
+		if self.showBorder then
+			love.graphics.setColor(self.borderColor)
+			if not self.enabled then
+				love.graphics.setColor(63, 63, 63)
+			end
+			local prevLineW = love.graphics.getLineWidth()
+			love.graphics.setLineWidth(self.borderWidth)
+			love.graphics.rectangle("line",
+				math.floor(self.x),
+				math.floor(self.y),
+				math.floor(self.w),
+				math.floor(self.h),
+				radiusCorner,
+				radiusCorner,
+				50)
+			love.graphics.setLineWidth(prevLineW)
+		end
+		love.graphics.setLineStyle("rough")
 
 		if self.hasFocus then
 			--love.graphics.setColor(255,0,0)
@@ -200,12 +345,32 @@ function component:draw()-- Every component has the same base:
 	end
 end
 
-function component:setEnabled(b)
-	self.enabled = b
-end
-
 function component:setVisible(b)
 	self.visible = b
+	if self.sons then
+		for i = 1, #self.sons do
+			self.sons[i].ref.visible = b
+		end
+	end
+end
+
+function component:setEnabled(b)
+	self.enabled = b
+	if self.sons then
+		for i = 1, #self.sons do
+			self.sons[i].ref.enabled = b
+		end
+	end
+end
+
+function component:setGroup(g)
+	self.group = g
+	if self.sons then
+		for i = 1, #self.sons do
+			self.sons[i].ref.group = g
+		end
+	end
+	return self
 end
 
 function component:wasReleased()
@@ -218,9 +383,7 @@ function component:wasReleased()
 	return b
 end
 
-function component:overIt(x, y)-- x and y if it's the first time pressed (no touch defined yet).
-	if not (self.enabled or self.visible) then return false end
-
+function component:overItAux(x, y)
 	local xm = love.mouse.getX()
 	local ym = love.mouse.getY()
 
@@ -232,36 +395,57 @@ function component:overIt(x, y)-- x and y if it's the first time pressed (no tou
 		xm, ym = x, y
 	end
 
+	local radiusCorner = self.round * self.h / 2
+
 	-- Check if one of the "two" rectangles is on the mouse/finger:
 	local b = not (
 		xm < self.x or
-		ym < self.y + self.radiusCorner or
+		ym < self.y + radiusCorner or
 		xm > self.x + self.w or
-		ym > self.y + self.h - self.radiusCorner
+		ym > self.y + self.h - radiusCorner
 	) or not (
-		xm < self.x + self.radiusCorner or
+		xm < self.x + radiusCorner or
 		ym < self.y or
-		xm > self.x + self.w - self.radiusCorner or
+		xm > self.x + self.w - radiusCorner or
 		ym > self.y + self.h
 	)
 
 	-- Check if mouse/finger is over one of the 4 "circles":
 
 	local x1, x2, y1, y2 =
-		self.x + self.radiusCorner,
-		self.x + self.w - self.radiusCorner,
-		self.y + self.radiusCorner,
-		self.y + self.h - self.radiusCorner
+		self.x + radiusCorner,
+		self.x + self.w - radiusCorner,
+		self.y + radiusCorner,
+		self.y + self.h - radiusCorner
 
 	local hyp1 = math.sqrt(math.pow(xm - x1, 2) + math.pow(ym - y1, 2))
 	local hyp2 = math.sqrt(math.pow(xm - x2, 2) + math.pow(ym - y1, 2))
 	local hyp3 = math.sqrt(math.pow(xm - x1, 2) + math.pow(ym - y2, 2))
 	local hyp4 = math.sqrt(math.pow(xm - x2, 2) + math.pow(ym - y2, 2))
 
-	return (hyp1 < self.radiusCorner or
-			hyp2 < self.radiusCorner or
-			hyp3 < self.radiusCorner or
-			hyp4 < self.radiusCorner or b), index, xm, ym
+	return (hyp1 < radiusCorner or
+			hyp2 < radiusCorner or
+			hyp3 < radiusCorner or
+			hyp4 < radiusCorner or b), index, xm, ym
+end
+
+function component:overIt(x, y)-- x and y if it's the first time pressed (no touch defined yet).
+	if self.type == "panel" or self.type == "label" then
+		return false
+	end
+
+	-- Not applicable in this case:
+	if not (self.enabled or self.visible) then return false end
+
+	if self.noFlag or self.okFlag or self.yesFlag then
+		return self:overItAux(x, y)
+	else
+		if gooi.showingDialog then
+			return false
+		else
+			return self:overItAux(x, y)
+		end
+	end
 end
 
 function component:setBounds(x, y, w, h)
@@ -272,44 +456,58 @@ function component:setBounds(x, y, w, h)
 
 	self.x, self.y, self.w, self.h = theX, theY, theW, theH
 
-	self:generateBorder()
-end
-
-function component:fixColor(...)
-	local comps = {...}
-	for i=1,#comps do
-		if comps[i] > 255 then comps[i] = 255 end
-		if comps[i] < 0   then comps[i] = 0   end
+	if self.type == "joystick" or self.type == "knob" then
+		self.smallerSide = self.h
+		if self.w < self.h then
+			self.smallerSide = self.w
+		end
+		self.w, self.h = self.smallerSide, self.smallerSide
+		self:rebuild()
 	end
-	return comps
+
+	return self
 end
 
---------------------------------------------------------------------------
--- Useful stuff:
---------------------------------------------------------------------------
-
-function component:setRadiusCorner(value)
-	self.radiusCorner = value
-	if self.radiusCorner > self.h / 2 then self.radiusCorner = self.h / 2 end
-	if self.radiusCorner < 0 then self.radiusCorner = 0 end
+function component:setOpaque(b)
+	self.opaque = b
+	return self
 end
 
-function drawRoundRec(x, y, w, h, r)
-	local right = 0
-	local left = math.pi
-	local bottom = math.pi * 0.5
-	local top = math.pi * 1.5
-	
-	local r = r or h / 2
-	if r > h / 2 then r = h / 2 end
+-- Thanks to Boolsheet:
+function roundRect(x, y, w, h, r)
+	r = r or h / 4
+	love.graphics.rectangle("fill", x, y+r, w, h-r*2)
+	love.graphics.rectangle("fill", x+r, y, w-r*2, r)
+	love.graphics.rectangle("fill", x+r, y+h-r, w-r*2, r)
+	love.graphics.arc("fill", x+r, y+r, r, left, top)
+	love.graphics.arc("fill", x + w-r, y+r, r, -bottom, right)
+	love.graphics.arc("fill", x + w-r, y + h-r, r, right, bottom)
+	love.graphics.arc("fill", x+r, y + h-r, r, bottom, left)
+end
+
+function changeBrig(color, amount)
+	if type(color) == "string" then
+		color = gooi.toRGBA(color)
+	end
+
+	local r, g, b, a = color[1], color[2], color[3], color[4] or 255
+
+	r = r + amount
+	g = g + amount
+	b = b + amount
+	--a = a + amount
+
 	if r < 0 then r = 0 end
+	if r > 255 then r = 255 end
 
-	love.graphics.rectangle("fill", x, y + r, w, h - r * 2)
-	love.graphics.rectangle("fill", x + r, y, w - r * 2, r)
-	love.graphics.rectangle("fill", x + r, y + h - r, w - r * 2, r)
+	if g < 0 then g = 0 end
+	if g > 255 then g = 255 end
 
-	love.graphics.arc("fill", x + r, y + r, r, left, top)
-	love.graphics.arc("fill", x + w - r, y + r, r, - bottom, right)
-	love.graphics.arc("fill", x + w - r, y + h - r, r, right, bottom)
-	love.graphics.arc("fill", x + r, y + h - r, r, bottom, left)
+	if b < 0 then b = 0 end
+	if b > 255 then b = 255 end
+
+	--if a < 0 then a = 0 end
+	--if a > 255 then a = 255 end
+
+	return {r, g, b, a}
 end

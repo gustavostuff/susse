@@ -59,6 +59,7 @@ function animManager.openAnimation(name)
 	local info = love.filesystem.load(name.."_info.lua")()
 	
 	local frames = animManager.createFrames(info.frameNum, info.fW, info.fH)
+	local matrixW, matrixH = info.matrixW, info.matrixH
 
 	-- Load image:
 	local imageData = love.image.newImageData(name)
@@ -80,7 +81,7 @@ function animManager.openAnimation(name)
 		end
 	end
 	local img = love.graphics.newImage(imageData)
-	return frames, img, info
+	return frames, img, info, matrixW, matrixH
 end
 
 function animManager.saveAnimation(name, frames, w, h)

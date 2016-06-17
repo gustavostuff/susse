@@ -3,10 +3,10 @@ palette = {}
 palette =
 {
 	number = 6,
-	x = 135,
-	y = 12,
-	xColor = 135,
-	yColor = 12
+	x = 106,
+	y = 6,
+	xColor = 106,
+	yColor = 6
 }
 
 for i = 1, palette.number do

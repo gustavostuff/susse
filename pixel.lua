@@ -27,3 +27,8 @@ function pixel:setColor(r, g, b, a)
 	end
 	self.color = {self.r, self.g, self.b, self.a}
 end
+
+function pixel:getColor()
+	local color = {self.color[1], self.color[2], self.color[3], self.color[4] or 255}
+	return color
+end
