@@ -2,7 +2,7 @@ palette = {}
 
 palette =
 {
-	number = 6,
+	number = 7,
 	x = 106,
 	y = 6,
 	xColor = 106,
@@ -29,7 +29,14 @@ palette.iD = function()
 	return palette["iD"..palette.which]
 end
 
-palette.scales = {[1] = 8, [2] = 8, [3] = 8, [4] = 32, [5] = 32, [6] = 8}
+palette.scales = {
+	[1] = 8,
+	[2] = 8,
+	[3] = 8,
+	[4] = 32,
+	[5] = 32,
+	[6] = 8,
+	[7] = 16}
 
 palette.scale = function()
 	return palette.scales[palette.which]
