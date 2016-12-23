@@ -27,7 +27,7 @@ component.__index = component
 component.style = {
 	bgColor = {12, 183, 242, 127}, -- LOVE blue
 	fgColor = {255, 255, 255, 255},
-	tooltipFont = love.graphics.newFont(love.graphics.getWidth() / 60),
+	tooltipFont = love.graphics.newFont(love.graphics.getWidth() / 70),
 	round = .25,
 	roundInside = .25,
 	showBorder = false,
@@ -384,39 +384,45 @@ function component:wasReleased()
 end
 
 function component:overItAux(x, y)
-	local xm = love.mouse.getX()
-	local ym = love.mouse.getY()
+	-- Scale:
+	local xm = love.mouse.getX() / gooi.sx
+	local ym = love.mouse.getY() / gooi.sy
 
 	if self.touch then
-		xm, ym = self.touch.x, self.touch.y
+		xm, ym = self.touch.x, self.touch.y-- Already scaled.
 	end
-
+	-- Scale:
 	if x and y then
 		xm, ym = x, y
 	end
 
 	local radiusCorner = self.round * self.h / 2
 
+	local theX = self.x
+	local theY = self.y
+	local theW = self.w
+	local theH = self.h
+
 	-- Check if one of the "two" rectangles is on the mouse/finger:
 	local b = not (
-		xm < self.x or
-		ym < self.y + radiusCorner or
-		xm > self.x + self.w or
-		ym > self.y + self.h - radiusCorner
+		xm < theX or
+		ym < theY + radiusCorner or
+		xm > theX + theW or
+		ym > theY + theH - radiusCorner
 	) or not (
-		xm < self.x + radiusCorner or
-		ym < self.y or
-		xm > self.x + self.w - radiusCorner or
-		ym > self.y + self.h
+		xm < theX + radiusCorner or
+		ym < theY or
+		xm > theX + theW - radiusCorner or
+		ym > theY + theH
 	)
 
 	-- Check if mouse/finger is over one of the 4 "circles":
 
 	local x1, x2, y1, y2 =
-		self.x + radiusCorner,
-		self.x + self.w - radiusCorner,
-		self.y + radiusCorner,
-		self.y + self.h - radiusCorner
+		theX + radiusCorner,
+		theX + theW - radiusCorner,
+		theY + radiusCorner,
+		theY + theH - radiusCorner
 
 	local hyp1 = math.sqrt(math.pow(xm - x1, 2) + math.pow(ym - y1, 2))
 	local hyp2 = math.sqrt(math.pow(xm - x2, 2) + math.pow(ym - y1, 2))

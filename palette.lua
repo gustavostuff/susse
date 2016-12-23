@@ -2,12 +2,12 @@ palette = {}
 
 palette =
 {
-	number = 8,
-	x = 106,
+	number = 3,
+	x = 176,
 	y = 6,
-	xColor = 106,
 	yColor = 6
 }
+palette.xColor = palette.x
 
 for i = 1, palette.number do
 	palette["img"..i] = love.graphics.newImage("/images/palette"..i..".png")
@@ -31,13 +31,8 @@ end
 
 palette.scales = {
 	[1] = 8,
-	[2] = 8,
-	[3] = 8,
-	[4] = 32,
-	[5] = 32,
-	[6] = 8,
-	[7] = 16,
-	[8] = 32
+	[2] = 32,
+	[3] = 32
 }
 
 palette.scale = function()
@@ -75,8 +70,11 @@ palette.getColor = function(theX, theY)
 	return c
 end
 
-palette.change = function()
+palette.change = function(index)
 	palette.which = palette.which + 1
+	
+	if index then palette.which = index end
+
 	if palette.which > palette.number then
 		palette.which = 1
 	end

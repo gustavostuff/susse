@@ -61,13 +61,22 @@ function love.load()
 	imgLeft = gr.newImage(imagesDir.."left.png")
 	imgRight = gr.newImage(imagesDir.."right.png")
 	imgAAArrow = gr.newImage(imagesDir.."aAarrow.png")
+	imgPalette1 = gr.newImage(imagesDir.."palette1.png")
+	imgPalette2 = gr.newImage(imagesDir.."palette2.png")
+	imgPalette3 = gr.newImage(imagesDir.."palette3.png")
+	imgContrast = gr.newImage(imagesDir.."contrast.png")
+	imgContrastSmall = gr.newImage(imagesDir.."contrastSmall.png")
+
 	bgDude1:setFilter("nearest", "nearest")
 	bgDude2:setFilter("nearest", "nearest")
 	bgDude3:setFilter("nearest", "nearest")
+	imgPalette1:setFilter("nearest", "nearest")
+	imgPalette2:setFilter("nearest", "nearest")
+	imgPalette3:setFilter("nearest", "nearest")
 	bgImage1:setWrap("repeat", "repeat")
 	bgImage2:setWrap("repeat", "repeat")
 	bgImage3:setWrap("repeat", "repeat")
-	
+
 	------------------------------------------------------------------------
 	love.window.setIcon(love.image.newImageData(imagesDir.."icon.png"))
 	------------------------------------------------------------------------
@@ -79,6 +88,7 @@ function love.load()
 	mirrorY = false
 	playing = false
 	animSaved = true
+	savedOnce = false
 	just_copied = false
 	-----------------------------------------------
 	fillMode = nil
@@ -88,7 +98,7 @@ function love.load()
 	currentFrameIndex = 1
 	aaDirection = 1-- Right.
 	aaRotation = 0
-	--palette.change()
+	palette.change(1)
 
 	---------------------------------------------------------------------------
 	---------------------------------------------------------------------------
@@ -122,7 +132,7 @@ function love.load()
 	btnDel = gooi.newButton({icon = imagesDir.."del.png"}):setTooltip("Deletes the last frame (Shift to delete current)")
 	btnAdd = gooi.newButton({icon = imagesDir.."add.png"}):setTooltip("Add a new frame (Shift to add in current position)")
 	chbLoop = gooi.newCheck("Loop"):change():bg("#FFFF0088"):setTooltip("Loop animation")
-	sliSpeed = gooi.newSlider(0.25):setTooltip("Delay in seconds for each frame"):setTooltip("Speed in seconds for each frame")
+	sliSpeed = gooi.newSlider(0.1):setTooltip("Delay in seconds for each frame"):setTooltip("Speed in seconds for each frame")
 	lblSpeed = gooi.newLabel("0.1"):setOrientation("center")
 	chbGrid = gooi.newCheck("Grid"):change():setTooltip("Show/Hide grid")
 	btnMX = gooi.newButton({icon = imagesDir.."mX.png"}):bg("#88888888"):setTooltip("Mirror in X axis")
@@ -130,15 +140,14 @@ function love.load()
 	btnCopyL = gooi.newButton({icon = imagesDir.."copyL.png"}):setTooltip("Copy frame from the left")
 	btnCopyR = gooi.newButton({icon = imagesDir.."copyR.png"}):setTooltip("Copy frame from the left")
 	------------
-	sliAlpha = gooi.newSlider(1):setTooltip("Alpha of picked color")
+	spinAlpha = gooi.newSpinner(0, 255, 255):setTooltip("Alpha of picked color")
 	chbAA = gooi.newCheck("Autoanimate"):setTooltip("'Moves' the drawn pixels to the indicated direction, with the given step size")
 	btnAA = gooi.newButton(""):setTooltip("Direction of the autoanimation")
 	chbCyclic = gooi.newCheck("Turn"):bg("#ff880088"):setTooltip("Makes the pixels to 'return' from the opposite side")
 	spiStep = gooi.newSpinner(0, 5, 1):setTooltip("Step size for the autoanimation")
-	lblInd = gooi.newLabel("255"):setOrientation("center")
-	btnChangePalette = gooi.newButton("Palette"):bg("#00ffff88"):setTooltip("Change color palette")
+	--lblInd = gooi.newLabel("255"):setOrientation("center")
 	btnFill = gooi.newButton({icon = imgFill}):bg("#88888888"):setTooltip("Fill in 4 or 8 directions")
-
+	--[[
 	btnFS = gooi.newButton({icon = imagesDir.."fs.png"}):onRelease(function(c)
 		love.window.setFullscreen(not love.window.getFullscreen())
 		c.image = love.graphics.newImage(imagesDir.."fs.png")
@@ -149,6 +158,8 @@ function love.load()
 		--btnReturn:setBounds(width() - 120, height() - 40, 110, 30)
 	end
 	):bg({127, 0, 127, 127}):setTooltip("Fullscreen")
+	]]
+
 	--gooi.newButton("btnOptions", "", width() - 60, 10, 50, 30, imagesDir.."spanner.png", "editing").bgColor = {127, 0, 127, 127}
 	btnOptions = gooi.newButton({icon = imagesDir.."spanner.png"}):setTooltip("See options")
 	--gooi.newButton("btnQuit", "", width() - 60, 50, 50, 30, imagesDir.."quit.png", "editing").bgColor = {255, 0, 0, 127}
@@ -192,28 +203,99 @@ function love.load()
 		btnCopyCB
 	):setGroup("editing")
 
-	panelEdit2 = gooi.newPanel(365, 3, 400, 70, "grid 2x9")
+	panelEdit2 = gooi.newPanel(510, 3, 400, 70, "grid 2x8")
 	panelEdit2.layout.debug = false
 
 	panelEdit2
-	:setColspan(1, 1, 2)-- Slider alpha
+	:setColspan(1, 1, 4)-- Autoanimate
+	:setColspan(1, 5, 2)-- Turn
+	:setColspan(2, 1, 3)-- Alpha
+	:setColspan(2, 5, 2)-- Step
+	--[[
+	:setColspan(1, 1, 2)-- 255
 	:setColspan(1, 3, 4)-- Autoanimate
 	:setColspan(1, 7, 2)-- Turn
-	:setColspan(2, 1, 2)-- 255
-	:setColspan(2, 3, 2)-- Step
-	:setColspan(2, 5, 2)-- Fill
+	:setColspan(2, 1, 3)-- Slider alpha
+	:setColspan(2, 4, 2)-- Step
+	:setColspan(2, 6, 2)-- Fill
 	:add(
-		sliAlpha,
+		--lblInd,
 		chbAA,
 		chbCyclic,
 		btnAA,
-		lblInd,
-		spiStep,
-		btnChangePalette,
+		--btnChangePalette,
+		--spiStep,
 		btnFill,
+		spinAlpha
 		--btnFS,
-		btnOptions
+		--btnOptions
+	)
+	]]
+	:add(
+		chbAA,
+		chbCyclic,
+		btnAA,
+		btnOptions,
+		spinAlpha,
+		btnFill,
+		spiStep
+	)
+	:setGroup("editing")
+	--panelEdit2.layout.debug = true
+
+	panelPalettes = gooi.newPanel(435, 3, 70, 70, "grid 3x1"):add(
+		gooi.newRadio("          ", "g_palettes"):onRelease(function(c)
+			palette.change(1)
+			brush.color = palette.getColor(palette.xColor, palette.yColor)
+		end):select(),
+		gooi.newRadio("          ", "g_palettes"):onRelease(function(c)
+			palette.change(2)
+			brush.color = palette.getColor(palette.xColor, palette.yColor)
+		end),
+		gooi.newRadio("          ", "g_palettes"):onRelease(function(c)
+			palette.change(3)
+			brush.color = palette.getColor(palette.xColor, palette.yColor)
+		end)
 	):setGroup("editing")
+
+	local function getColor(c)
+		if shiftDown() then
+			local bg = {brush.color[1], brush.color[2], brush.color[3], brush.color[4] or 255}
+			c:bg(bg)
+			c.hasColor = true
+			c.showBorder = true
+		else
+			if c.hasColor then
+				brush.color = {c.bgColor[1], c.bgColor[2], c.bgColor[3], c.bgColor[4] or 255}
+				spinAlpha.bg(brush.color)
+			end
+		end
+	end
+	local ttfc = "Shift + click to pick, normal click to use"
+
+	radioPicked1 = gooi.newRadio(" ", "grp_frequent"):bg("#888888"):onRelease(getColor):setTooltip(ttfc)
+	radioPicked2 = gooi.newRadio(" ", "grp_frequent"):bg("#888888"):onRelease(getColor):setTooltip(ttfc)
+	radioPicked3 = gooi.newRadio(" ", "grp_frequent"):bg("#888888"):onRelease(getColor):setTooltip(ttfc)
+	radioPicked4 = gooi.newRadio(" ", "grp_frequent"):bg("#888888"):onRelease(getColor):setTooltip(ttfc)
+	radioPicked5 = gooi.newRadio(" ", "grp_frequent"):bg("#888888"):onRelease(getColor):setTooltip(ttfc)
+	radioPicked6 = gooi.newRadio(" ", "grp_frequent"):bg("#888888"):onRelease(getColor):setTooltip(ttfc)
+
+	radioPicked1:border(3).showBorder = false
+	radioPicked2:border(3).showBorder = false
+	radioPicked3:border(3).showBorder = false
+	radioPicked4:border(3).showBorder = false
+	radioPicked5:border(3).showBorder = false
+	radioPicked6:border(3).showBorder = false
+
+	panelColors = gooi.newPanel(103, 3, 70, 70, "grid 3x2"):add(
+		radioPicked1,
+		radioPicked2,
+		radioPicked3,
+		radioPicked4,
+		radioPicked5,
+		radioPicked6
+	):setGroup("editing")
+	--panelColors.layout.debug = true
 
 	btnAA:bg({0, 255, 0, 127})
 	btnAA:setEnabled(false)
@@ -222,20 +304,20 @@ function love.load()
 	--palette.changeSquare()
 
 	-- Saving gooi:
-	sliderSave = gooi.newSlider(0, 50, 200, 600, 30):setGroup("saving")
+	sliderSave = gooi.newSlider(0, 50, 50, 600, 30):setGroup("saving")
 	btnCancelSave = gooi.newButton("Cancel", width() - 220, height() - 40, 100, 30):setGroup("saving"):bg("#ff000088")
 	btnConfirmSave = gooi.newButton("Save", width() - 110, height() - 40, 100, 30):setGroup("saving")
 	lblName = gooi.newLabel("Name:", width() - 540, height() - 40, 100, 30):setGroup("saving")
 	textName = gooi.newText("new.png", width() - 430, height() - 40, 200, 30):setGroup("saving")
 
 	-- New animation gooi:
-	--gooi.newLabel("lblFrameNum:", "Frames:", width() - 450, 480, 120, 30, imagesDir.."fNum.png", "left", "new")
-	gooi.newLabel              ("Width:", 10, 60, 120, 30):setGroup("new")
-	gooi.newLabel              ("Height:", 10, 100, 120, 30):setGroup("new")
-	lblFrameNum = gooi.newLabel("Frames", 10, 140, 120, 30):setGroup("new")
-	spiNewW =      gooi.newSpinner(1, 32, 16, 130, 60, 120, 30):setGroup("new")
-	spiNewH =      gooi.newSpinner(1, 32, 16, 130, 100, 120, 30):setGroup("new")
-	spiFramesNum = gooi.newSpinner(1, 50, 10, 130, 140, 120, 30):setGroup("new")
+	gooi.newLabel              ("Width:", 420, 440, 120, 30):setGroup("new")
+	gooi.newLabel              ("Height:",420, 480, 120, 30):setGroup("new")
+	lblFrameNum = gooi.newLabel("Frames", 420, 520, 120, 30):setGroup("new")
+	spiNewW =      gooi.newSpinner(1, 32, 16, 540, 440, 120, 30):setGroup("new")
+	spiNewH =      gooi.newSpinner(1, 32, 16, 540, 480, 120, 30):setGroup("new")
+	spiFramesNum = gooi.newSpinner(1, 50, 10, 540, 520, 120, 30):setGroup("new")
+	--textNameNew = gooi.newText("", width() - 450, height() - 40, 220, 30):setGroup("new")
 	btnCancelNew = gooi.newButton("Cancel", width() - 220, height() - 40, 100, 30):setGroup("new"):bg("#ff000088")
 	btnOkNew = gooi.newButton("OK", width() - 110, height() - 40, 100, 30):setGroup("new")
 
@@ -306,7 +388,7 @@ function love.load()
 		state = STATE_SAVING
 	end
 	function performSave(c)
-		print(finalW, finalH)
+		--print(finalW, finalH)
 		imgAnalAnim, info = animManager.saveAnimation(textName.text, frames, finalW, finalH)
 		local millis = sliSpeed.value
 		analAnim = newAnimation(imgAnalAnim, info.fW, info.fH, millis, #frames)
@@ -315,6 +397,7 @@ function love.load()
 		checkAutoAnim()
 		btnSave:setEnabled(false)
 		animSaved = true
+		savedOnce = true
 		state = STATE_EDITING
 	end
 	function setFillMode4(c)
@@ -340,9 +423,9 @@ function love.load()
 		playOrStop(c)
 		--print(tostring(chbAutosave.checked))
 		if chbAutosave.checked then
-			if animSaved then
+			--if animSaved then
 				performSave()
-			end
+			--end
 		end
 	end)
 	chbLoop:onRelease(function(c)
@@ -352,7 +435,7 @@ function love.load()
 		end
 	end)
 	btnSave:onRelease(function(c)
-		if animSaved then
+		if savedOnce then
 			performSave(c)
 		else
 			callSave(c)
@@ -428,6 +511,7 @@ function love.load()
 		setNewAnim(spiFramesNum.value, spiNewW.value, spiNewH.value)
 		checkAutoAnim()
 		state = STATE_EDITING
+		savedOnce = false
 	end)
 	btnAA:onRelease(function(c)
 		local sense = 1
@@ -457,12 +541,14 @@ function love.load()
 			setNoFillMode(c)
 		end
 	end)
+	--[[
 	btnChangePalette:onRelease(function(c)
 		palette.change()
 		c.label = "Palette "..palette.which
 		brush.color = palette.getColor(palette.xColor, palette.yColor)
 		c:bg({r(), r(), r(), 127})
 	end)
+	]]
 	btnOptions:onRelease(function(c)
 		gooi.setGroupEnabled("editing", false)
 		gooi.setGroupEnabled("options", true)
@@ -498,10 +584,10 @@ function love.update(dt)
 			setPixel(mo.getX(), mo.getY(), brush.color, true)
 			updateAnchor(mo.getPosition())
 		end
-		sliAlpha:bg(brush.color)
-		local a = math.floor(sliAlpha.value * 255)
-		sliAlpha.bgColor[4] = a
-		lblInd.text = tostring(a)
+		spinAlpha:bg(brush.color)
+		local a = math.floor(spinAlpha.value)
+		spinAlpha.bgColor[4] = a
+		--lblInd.text = tostring(a)
 
 		lblCopySD:setVisible(btnCopyCB:overIt())
 
@@ -641,7 +727,20 @@ function love.draw()
 		gr.setColor(0, 0, 0, 180)
 		gr.rectangle("fill", 0, 0, width(), tbUpLimit)
 		gr.rectangle("fill", 0, tbUpLimit, tbLeftLimit, height() - tbUpLimit)
-		
+
+		-- Contrast images:
+		gr.setColor(255, 255, 255)
+		gr.draw(imgContrast, spinAlpha.x, spinAlpha.y)
+
+		gr.draw(imgContrastSmall, 106, 6)
+		gr.draw(imgContrastSmall, 141, 6)
+
+		gr.draw(imgContrastSmall, 106, 29)
+		gr.draw(imgContrastSmall, 141, 29)
+
+		gr.draw(imgContrastSmall, 106, 52)
+		gr.draw(imgContrastSmall, 141, 52)
+
 		gr.setColor(6, 96, 128)
 
 		-- Palette:
@@ -691,6 +790,13 @@ function love.draw()
 	
 		gr.setFont(prevFont)
 
+
+		---------------------------------------------
+		---------------------------------------------
+		gooi.draw("editing")
+		---------------------------------------------
+		---------------------------------------------
+		
 		gr.setColor(255, 255, 255)
 		if not chbAA.checked then
 			gr.setColor(127, 127, 127)
@@ -699,11 +805,14 @@ function love.draw()
 			math.rad(aaRotation), 1, 1, imgAAArrow:getWidth() / 2, imgAAArrow:getHeight() / 2)
 		gr.setColor(255, 0, 0)
 
-		---------------------------------------------
-		---------------------------------------------
-		gooi.draw("editing")
-		---------------------------------------------
-		---------------------------------------------
+		-- Palette radios:
+		gr.setColor(255, 255, 255)
+		if gooi.showingDialog then
+			gr.setColor(127, 127, 127)
+		end
+		gr.draw(imgPalette1, 460, 11, 0, 1, 1)
+		gr.draw(imgPalette2, 460, 34, 0, 4, 4)
+		gr.draw(imgPalette3, 460, 57, 0, 4, 4)
 	
 	elseif state == STATE_SAVING then
 		gooi.draw("saving")
@@ -1407,7 +1516,7 @@ function love.keypressed(key)
 			if key == "c" then
 				palette.change()
 				brush.color = palette.getColor(palette.xColor, palette.yColor)
-				btnChangePalette.label = "Palette "..palette.which
+				--btnChangePalette.label = "Palette "..palette.which
 			end
 		end
 	end
@@ -1434,6 +1543,7 @@ end
 
 function love.resize(w, h)
 	btnOkNew:setBounds(width() - 110, height() - 40, 100, 30)
+	--textNameNew:setBounds(width() - 450, height() - 40, 220, 30)
 	btnCancelNew:setBounds(width() - 220, height() - 40, 100, 30)
 
 	btnOpenThis:setBounds(width() - 110, height() - 40, 100, 30)

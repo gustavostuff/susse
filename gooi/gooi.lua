@@ -25,7 +25,8 @@ THE SOFTWARE.
 
 gooi = {}
 gooi.__index = gooi
-gooi.font = love.graphics.newFont(love.graphics.getWidth() / 80)
+gooi.defaultFont = love.graphics.newFont(12)
+gooi.font = defaultFont
 gooi.components = {}
 gooi.dialogFOK = function() end
 gooi.showingDialog = false
@@ -33,6 +34,9 @@ gooi.dialogMsg = ""
 gooi.dialogH = 0
 gooi.dialogW = 0
 gooi.desktop = false
+gooi.canvas = love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
+gooi.sx = 1
+gooi.sy = 1
 
 function gooi.desktopMode()
 	gooi.desktop = true
@@ -109,15 +113,15 @@ function gooi.newLabel(text, x, y, w, h)
 	function l:drawSpecifics(fg)
 		local t = self.text or ""
 		-- Right by default:
-		local x = self.x + self.w - gooi.getFont(self):getWidth(t) - self.h / 2
-		local y = (self.y + self.h / 2) - (gooi.getFont(self):getHeight() / 2)
+		local x = self.x + self.w - gooi.getFont():getWidth(t) - self.h / 2
+		local y = (self.y + self.h / 2) - (gooi.getFont():getHeight() / 2)
 		if self.orientation == "left" then
 			x = self.x + self.h / 2
 			if self.icon then
 				x = x + self.h / 2
 			end
 		elseif self.orientation == "center" then
-			x = (self.x + self.w / 2) - (gooi.getFont(self):getWidth(t) / 2)
+			x = (self.x + self.w / 2) - (gooi.getFont():getWidth(t) / 2)
 		end
 		if self.icon then
 			local xImg = math.floor(self.x + self.h / 2)
@@ -224,15 +228,15 @@ function gooi.newButton(text, x, y, w, h)
 		end
 		-- Center text:
 		local t = self.text
-		local x = (self.x + self.w / 2) - (gooi.getFont(self):getWidth(t) / 2)
-		local y = (self.y + self.h / 2) - (gooi.getFont(self):getHeight() / 2)
+		local x = (self.x + self.w / 2) - (gooi.getFont():getWidth(t) / 2)
+		local y = (self.y + self.h / 2) - (gooi.getFont():getHeight() / 2)
 		if self.orientation == "left" then
 			x = self.x + self.h / 2
 			if self.icon then
 				x = x + self.h / 2
 			end
 		elseif self.orientation == "right" then
-			x = self.x + self.w - self.h / 2 - gooi.getFont(self):getWidth(self.text)
+			x = self.x + self.w - self.h / 2 - gooi.getFont():getWidth(self.text)
 		end
 		if self.icon then
 			local xImg = math.floor(self.x + self.h / 2)
@@ -346,7 +350,11 @@ function gooi.newSlider(value, x, y, w, h)
 				self.y + self.h / 2)
 		end
 	end
-	function s:updateGUI(theX)
+	function s:updateGUI()
+		local theX = love.mouse.getX() / gooi.sx
+		if self.touch then
+			theX = self.touch.x
+		end
 		self.displacement = (theX - (self.x + self.h / 2))
 		if self.displacement > (self.w - self.h) then self.displacement = self.w - self.h end
 		if self.displacement < 0 then self.displacement = 0 end
@@ -393,7 +401,7 @@ function gooi.newCheck(text, x, y, w, h)
 	elseif type(text) == "string" then
 		params.text = text
 		params.x, params.y = x or 10, y or 10
-		params.w = w or gooi.getFont():getWidth(text) + gooi.getFont():getHeight()
+		params.w = w or gooi.getFont():getWidth(text) + gooi.getFont():getHeight() * 2.5
 		params.h = h or defH
 	end
 
@@ -451,7 +459,7 @@ function gooi.newCheck(text, x, y, w, h)
 		love.graphics.setColor(fg)
 		love.graphics.print(self.text, 
 			math.floor(self.x + self.h * 1.1),
-			math.floor(self.y + self.h / 2 - gooi.getFont(self):getHeight() / 2))
+			math.floor(self.y + self.h / 2 - gooi.getFont():getHeight() / 2))
 	end
 	function chb:change()
 		self.checked = not self.checked
@@ -544,7 +552,7 @@ function gooi.newRadio(text, radioGroup, x, y, w, h)
 		end
 		love.graphics.print(self.text,
 			math.floor(self.x + self.h * 1.1),
-			math.floor(self.y + self.h / 2 - gooi.getFont(self):getHeight() / 2))
+			math.floor(self.y + self.h / 2 - gooi.getFont():getHeight() / 2))
 	end
 	function r:setRadioGroup(g)
 		self.radioGroup = g
@@ -606,7 +614,7 @@ function gooi.newText(text, x, y, w, h)
 	f.accentuationComing = false -- Support for typing á, é, í, ó, ú and Á, É, Í, Ó, Ú (on PC).
 	f.indexCursor = string.utf8len(f.text)
 	function f:rebuild()
-		self.displacementCursor = math.floor(self.x + self.h / 3 + gooi.getFont(self):getWidth(self.text))
+		self.displacementCursor = math.floor(self.x + self.h / 3 + gooi.getFont():getWidth(self.text))
 		--self:generateBorder()
 	end
 	f:rebuild()
@@ -667,10 +675,10 @@ function gooi.newText(text, x, y, w, h)
 			if self.indexCursor < 0 then
 				self.indexCursor = 0
 			end
-			self.displacementCursor = self.x + marginText + gooi.getFont(self):getWidth(string.utf8sub(self.text, 1, self.indexCursor))
+			self.displacementCursor = self.x + marginText + gooi.getFont():getWidth(string.utf8sub(self.text, 1, self.indexCursor))
 		else
 			self.indexCursor = self.indexCursor + 1
-			self.displacementCursor = self.x + marginText + gooi.getFont(self):getWidth(self.text)
+			self.displacementCursor = self.x + marginText + gooi.getFont():getWidth(self.text)
 		end
 	end
 
@@ -678,7 +686,7 @@ function gooi.newText(text, x, y, w, h)
 		local marginRecBlack = math.floor(self.h / 6)
 		love.graphics.print(self.text,
 			math.floor(self.x + marginRecBlack * 2),
-			math.floor(self.y + self.h / 2 - gooi.getFont(self):getHeight() / 2))
+			math.floor(self.y + self.h / 2 - gooi.getFont():getHeight() / 2))
 	end
 
 	return gooi.storeComponent(f, id)
@@ -900,11 +908,6 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 				self.roundInside * side / 2,
 				circleRes)
 
-		-- Less:
-		--love.graphics.line(x1 + xDiff, yTop, x1, yMid, x1 + xDiff, yLow)
-		-- Plus:
-		--love.graphics.line(x2 - xDiff, yTop, x2, yMid, x2 - xDiff, yLow)
-
 		love.graphics.setLineStyle("rough")
 		love.graphics.setLineWidth(prevLineW)
 
@@ -913,8 +916,8 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 			love.graphics.setColor(0, 0, 0)
 		end
 		local t = tostring(self.value)
-		local x = (self.x + self.w / 2) - (gooi.getFont(self):getWidth(t) / 2)
-		local y = (self.y + self.h / 2) - (gooi.getFont(self):getHeight() / 2)
+		local x = (self.x + self.w / 2) - (gooi.getFont():getWidth(t) / 2)
+		local y = (self.y + self.h / 2) - (gooi.getFont():getHeight() / 2)
 
 		love.graphics.setColor(fg)
 		love.graphics.print(t, math.floor(x), math.floor(y))
@@ -925,7 +928,7 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 		if x and y then dx, dy = self.xMin - x, self.yMin - y end
 		return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2)) < self.radCirc * 1.1
 		]]
-		return self:overIt() and x < self.x + self.w / 2
+		return self:overIt() and x < (self.x + self.w / 2)
 	end
 	function s:overPlus(x, y)
 		--[[
@@ -933,7 +936,7 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 		if x and y then dx, dy = self.xPlus - x, self.yPlus - y end
 		return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2)) < self.radCirc * 1.1
 		]]
-		return self:overIt() and x >= self.x + self.w / 2
+		return self:overIt() and x >= (self.x + self.w / 2)
 	end
 	function s:changeValue(sense)
 		local newV = self.value + self.step * sense
@@ -1049,8 +1052,8 @@ function gooi.newJoy(x, y, size, deadZone, image)
 				self.image:getHeight() / 2)
 		else
 			love.graphics.circle("fill",
-				self.xStick,
-				self.yStick,
+				math.floor(self.xStick),
+				math.floor(self.yStick),
 				self.rStick,
 				circleRes)
 		end
@@ -1058,19 +1061,18 @@ function gooi.newJoy(x, y, size, deadZone, image)
 	function s:move(direction)
 		if (self.pressed or self.touch) and self.stickPressed then
 			local daX, daY = love.mouse.getPosition()
+			daX = daX / gooi.sx
+			daY = daY / gooi.sy
+			if self.touch then
+				daX, daY = self.touch.x, self.touch.y
+			end
 			if self:butting() then
-				if self.touch then
-					daX, daY = self.touch.x, self.touch.y
-				end
-				local dX, dY = self:theX() - daX - self.dx, self:theY() - daY - self.dy
+				local dX = self:theX() - daX - self.dx
+				local dY = self:theY() - daY - self.dy
 				local angle = (math.atan2(dY, dX) + math.rad(180));
 				self.xStick = self.x + (self.r - self.rStick) * math.cos(angle) + self.r
 				self.yStick = self.y + (self.r - self.rStick) * math.sin(angle) + self.r
 			else
-				--self.xStick, self.yStick = love.mouse.getX() + self.dx, love.mouse.getY() + self.dy
-				if self.touch then
-					daX, daY = self.touch.x, self.touch.y
-				end
 				self.xStick, self.yStick = daX + self.dx, daY + self.dy
 			end
 		end
@@ -1090,6 +1092,8 @@ function gooi.newJoy(x, y, size, deadZone, image)
 	function s:butting()
 		local hyp = 0
 		local daX, daY = love.mouse.getPosition()
+		daX = daX / gooi.sx
+		daY = daY / gooi.sy
 		if self.touch then
 			daX, daY = self.touch.x, self.touch.y
 		end
@@ -1107,18 +1111,19 @@ function gooi.newJoy(x, y, size, deadZone, image)
 		if self:onDeadZone() then return 0 end
 		return tonumber(string.format("%.3f",(self.yStick - self:theY()) / (self.r - self.rStick)))
 	end
-	function s:overStick(x, y)-- x and y are sent in case of a touch.
-		dx, dy = self.xStick - love.mouse.getX(), self.yStick - love.mouse.getY()
-		if x and y then dx, dy = self.xStick - x, self.yStick - y end
+	function s:overStick(x, y)
+		local dx = (self.xStick - x)
+		local dy = (self.yStick - y)
 		return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2)) < self.rStick * 1.1
 	end
 	function s:onDeadZone()
 		local dx, dy = self:theX() - self.xStick, self:theY() - self.yStick
 		return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2)) <= self.deadZone * (self.r - self.rStick)
 	end
-	-- TODO this is a temporal fix for the joystick "moving" by itself when setting a style:
 	function s:theX() return (self.x) + (self.r) end
 	function s:theY() return (self.y) + (self.r) end
+
+	
 
 	return gooi.storeComponent(s, id)
 end
@@ -1204,25 +1209,8 @@ function gooi.newKnob(value, x, y, size)
 			circleRes)
 	end
 
-	function k:insideKnob()
-		local x = love.mouse.getX()
-		local y = love.mouse.getY()
-		
-		if self.touch then
-			x = self.touch.x
-			y = self.touch.y
-		end
-
-		local dx = math.abs(x - self.xKnob)
-		local dy = math.abs(y - self.yKnob)
-		local hyp = math.sqrt(math.pow(dx, 2) + math.pow(dy, 2))
-		local rad = self.radKnob
-
-		return hyp < rad
-	end
-
 	function k:turn()
-		local y = love.mouse.getY()
+		local y = love.mouse.getY() / gooi.sy
 		
 		if self.touch then
 			y = self.touch.y
@@ -1230,7 +1218,7 @@ function gooi.newKnob(value, x, y, size)
 
 		local dy = self.pivotY - y
 
-		self.changedValue = self.pivotValue + dy / self.h / 3
+		self.changedValue = (self.pivotValue + (dy / self.h / 2))
 
 		if self.changedValue > 1 then self.changedValue = 1 end
 		if self.changedValue < 0 then self.changedValue = 0 end
@@ -1368,6 +1356,14 @@ function gooi.newPanel(x, y, w, h, theLayout)
 				end
 
 				if c.rebuild then c:rebuild() end
+				if c.type == "joystick" then
+					-- Workaround for joysticks:
+					joy1.pressed = true
+					joy1.stickPressed = true
+					joy1:restore()
+					joy1.stickPressed = false
+					joy1.pressed = false
+				end
 			else-- Add component in the next available cell:
 				for i = 1, #params do
 					local c = params[i]
@@ -1400,6 +1396,14 @@ function gooi.newPanel(x, y, w, h, theLayout)
 					end
 
 					if c.rebuild then c:rebuild() end
+					if c.type == "joystick" then
+						-- Workaround for joysticks:
+						joy1.pressed = true
+						joy1.stickPressed = true
+						joy1:restore()
+						joy1.stickPressed = false
+						joy1.pressed = false
+					end
 				end
 			end
 		elseif self.layout.kind == "game" then
@@ -1576,6 +1580,12 @@ function gooi.storeComponent(c, id)
 	return c
 end
 
+function gooi.setCanvas(c)
+	gooi.canvas = c
+	gooi.sx = love.graphics.getWidth() / gooi.canvas:getWidth()
+	gooi.sy = love.graphics.getHeight() / gooi.canvas:getHeight()
+end
+
 
 function gooi.removeComponent(comp)
 	for k, v in pairs(gooi.components) do
@@ -1628,7 +1638,6 @@ function gooi.setStyle(style)
 	if component.style.roundInside > 1 then component.style.roundInside = 1 end
 end
 
-
 -- Update what needs to be updated:
 local timerBackspaceText = 0
 local timerStepChar = 0
@@ -1661,9 +1670,9 @@ function gooi.update(dt)
 			if c.type == "slider" then
 				local t = c.touch
 				if t then
-					c:updateGUI(t.x)
+					c:updateGUI()
 				else
-					c:updateGUI(love.mouse.getX())
+					c:updateGUI()
 				end
 			elseif c.type == "joystick" then
 				c:move()
@@ -1689,6 +1698,10 @@ function gooi.draw(group)
 	local noButton, okButton, yesButton, msgLbl = nil, nil, nil, nil
 
 	local compWithTooltip = nil -- Just for desktop.
+
+	love.graphics.setColor(255, 255, 255)
+	--love.graphics.setCanvas(gooi.canvas)
+	--love.graphics.clear()
 
 	for k, comp in pairs(gooi.components) do
 
@@ -1716,7 +1729,7 @@ function gooi.draw(group)
 			if actualGroup == comp.group and comp.visible then
 				comp:draw()-- Draw the base.
 
-				love.graphics.setFont(comp.font or gooi.getFont())-- Specific or a common font.
+				love.graphics.setFont(gooi.getFont())-- Specific or a common font.
 
 				local fg = comp.fgColor
 				if not comp.enabled then
@@ -1744,33 +1757,32 @@ function gooi.draw(group)
 			end
 
 		end
+	end
 
-		-- Check if a tooltip was generated, just for desktop:
-
-		local os = love.system.getOS()
-		if compWithTooltip and os ~= "Android" and os ~= "iOS" and gooi.desktop then
-			local disp = love.graphics.getWidth() / 100
-			local unit = compWithTooltip.tooltipFont:getHeight() / 5
-			love.graphics.setColor(0, 0, 0, 200)
-			love.graphics.setFont(compWithTooltip.tooltipFont)
-			local xRect = love.mouse.getX() + disp - unit
-			local yRect = love.mouse.getY() - disp * 2 - unit
-			local xText = love.mouse.getX() + disp
-			local yText = love.mouse.getY() - disp * 2
-			local wRect = compWithTooltip.tooltipFont:getWidth(compWithTooltip.tooltip) + unit * 2
-			local hRect = compWithTooltip.tooltipFont:getHeight() + unit * 2
-			if xRect + wRect > love.graphics.getWidth() then
-				xRect = xRect - wRect
-				xText = xText - wRect
-			end
-			if yRect < 0 then
-				yRect = yRect + hRect * 2
-				yText = yText + hRect * 2
-			end
-			love.graphics.rectangle("fill", xRect, yRect, wRect, hRect)
-			love.graphics.setColor(255, 255, 255)
-			love.graphics.print(compWithTooltip.tooltip, math.floor(xText), math.floor(yText))
+	-- Check if a tooltip was generated, just for desktop:¡
+	local os = love.system.getOS()
+	if compWithTooltip and os ~= "Android" and os ~= "iOS" and gooi.desktop then
+		local disp = love.graphics.getWidth() / 100
+		local unit = compWithTooltip.tooltipFont:getHeight() / 5
+		love.graphics.setColor(0, 0, 0, 150)
+		love.graphics.setFont(compWithTooltip.tooltipFont)
+		local xRect = love.mouse.getX() + disp - unit
+		local yRect = love.mouse.getY() - disp * 2 - unit
+		local xText = love.mouse.getX() + disp
+		local yText = love.mouse.getY() - disp * 2
+		local wRect = compWithTooltip.tooltipFont:getWidth(compWithTooltip.tooltip) + unit * 2
+		local hRect = compWithTooltip.tooltipFont:getHeight() + unit * 2
+		if xRect + wRect > love.graphics.getWidth() then
+			xRect = xRect - wRect
+			xText = xText - wRect
 		end
+		if yRect < 0 then
+			yRect = yRect + hRect * 2
+			yText = yText + hRect * 2
+		end
+		love.graphics.rectangle("fill", xRect, yRect, wRect, hRect)
+		love.graphics.setColor(255, 255, 255)
+		love.graphics.print(compWithTooltip.tooltip, math.floor(xText), math.floor(yText))
 	end
 
 	if gooi.showingDialog then
@@ -1823,6 +1835,9 @@ function gooi.draw(group)
 	love.graphics.setFont(prevFont)
 	love.graphics.setLineStyle(prevLineS)
 	love.graphics.setColor(prevR, prevG, prevB, prevA)
+
+	--love.graphics.setCanvas()
+	--love.graphics.draw(gooi.canvas, 0, 0, 0, gooi.sx, gooi.sy)
 end
 
 function gooi.toRGBA(hex)
@@ -1898,9 +1913,11 @@ function gooi.deselectOtherRadios(group, id)
 end
 
 ---------------------------------------------------------------------------------------------
-function gooi.pressed(id, x, y)
-	x = x or love.mouse.getX()
-	y = y or love.mouse.getY()
+function gooi.pressed(id, xt, yt)
+	local x = xt or love.mouse.getX()
+	local y = yt or love.mouse.getY()
+	x = x / gooi.sx
+	y = y / gooi.sy
 	for k, c in pairs(gooi.components) do
 		if c.enabled and c.visible then
 			if c.type == "joystick" then
@@ -1922,11 +1939,13 @@ function gooi.pressed(id, x, y)
 			elseif c.type == "knob" then
 				c.pivotY = (y or love.mouse.getY())
 			end
-		end
-		if c.enabled and c.visible then
 			if c:overIt(x, y) then
 				if id and x and y then
-					c.touch = {id = id, x = x, y = y}-- Touch used on touchscreens only.
+					c.touch = {
+						id = id,
+						x = x,
+						y = y
+					}-- Touch used on touchscreens only.
 				else
 					c.pressed = true-- Pressed just on PC (one pressed at once).
 				end
@@ -1938,18 +1957,18 @@ function gooi.pressed(id, x, y)
 	end
 end
 ---------------------------------------------------------------------------------------------
-function gooi.moved(id, x, y)
+function gooi.moved(id, xt, yt)
 	local comp = gooi.getCompWithTouch(id)
 	if comp and comp.touch then-- Update touch for every component which has it.
-		comp.touch.x = x
-		comp.touch.y = y
+		comp.touch.x = xt / gooi.sx
+		comp.touch.y = yt / gooi.sy
 		if comp.events.m then
 			comp.events.m(comp)-- Moven event.
 		end
 	end
 end
 ---------------------------------------------------------------------------------------------
-function gooi.released(id, x, y)
+function gooi.released(id, xt, yt)
 	local c = gooi.getCompWithTouch(id)
 	gooi.updateFocus()
 	if c then
@@ -2076,13 +2095,14 @@ end
 function gooi.checkBounds(text, x, y, w, h, t)
 	local newX, newY, newW, newH = x, y, w, h
 	if not (w and h) then
-		newW = gooi.getFont(self):getWidth(text) + gooi.getFont(self):getHeight()
-		newH = gooi.getFont(self):getHeight() * 2
+		newW = gooi.getFont():getWidth(text) + gooi.getFont():getHeight()
+		newH = gooi.getFont():getHeight() * 2
 		if t == "checkbox" or t == "text" or t == "radio" then
-			newW = newW + newH
+			newW = newW + newH * 2.5
+			love.event.quit()
 		end
 		if t == "spinner" then
-			newW = newW + newH * 2
+			newW = newW + newH * 2.5
 		end
 		if not (x and y) then
 			newX, newY = 10, 10
@@ -2098,7 +2118,7 @@ function gooi.getFont(comp)
 	if comp and comp.font then
 		return comp.font
 	end
-	return gooi.font or love.graphics.getFont()
+	return gooi.font or gooi.defaultFont
 end
 
 

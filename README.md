@@ -1,10 +1,16 @@
-#### Süsse (Super ültra sweet sprite editor) helps you to create low-resolution sprite sheets.
+## Süsse (Super ültra sweet sprite editor) helps you to create low-resolution sprite sheets.
 
 [![License](http://img.shields.io/:license-MIT-blue.svg)](http://doge.mit-license.org)
+[![Version](http://img.shields.io/:version-0.0.5-green.svg)](https://github.com/tavuntu/susse/blob/master/README.md)
+
+[![susse_ss.png](https://s28.postimg.org/6mkv5nzkd/susse_ss.png)](https://postimg.org/image/6zc9buhu1/)
+
+#### Süsse can do things like this with just a few clicks:
+[![optimized.gif](https://s24.postimg.org/tjzjmsmid/optimized.gif)](https://postimg.org/image/53hdsblrl/)
 
 ![editor](https://s31.postimg.org/r8k7u8ydn/ss_susse.png)
 
-How to use it with the keyboard:
+Basic controls:
 
 * Left and Right arrows to change the frame
 * Ctrl + D deletes the last frame
@@ -18,4 +24,4 @@ How to use it with the keyboard:
 * Ctrl + Z for undo
 * Ctrl + Y for redo
 
-Süsse is still a work in progress, thanks!
+Süsse is still a work in progress, thanks for you feedback
