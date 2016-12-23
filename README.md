@@ -8,8 +8,6 @@
 #### Süsse can do things like this with just a few clicks:
 [![optimized.gif](https://s24.postimg.org/tjzjmsmid/optimized.gif)](https://postimg.org/image/53hdsblrl/)
 
-![editor](https://s31.postimg.org/r8k7u8ydn/ss_susse.png)
-
 Basic controls:
 
 * Left and Right arrows to change the frame
