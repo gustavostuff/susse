@@ -1,7 +1,7 @@
 ## Süsse (Super ültra sweet sprite editor) helps you to create low-resolution sprite sheets.
 
 [![License](http://img.shields.io/:license-MIT-blue.svg)](http://doge.mit-license.org)
-[![Version](http://img.shields.io/:version-0.0.5-green.svg)](https://github.com/tavuntu/susse/blob/master/README.md)
+[![Version](http://img.shields.io/:version-0.0.1-green.svg)](https://github.com/tavuntu/susse/blob/master/README.md)
 
 [![susse_ss.png](https://s28.postimg.org/6mkv5nzkd/susse_ss.png)](https://postimg.org/image/6zc9buhu1/)
 
