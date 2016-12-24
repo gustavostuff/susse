@@ -242,8 +242,7 @@ function love.load()
 	)
 	:setGroup("editing")
 	--panelEdit2.layout.debug = true
-
-	panelPalettes = gooi.newPanel(435, 3, 70, 70, "grid 3x1"):add(
+	radiosPalette = {
 		gooi.newRadio("          ", "g_palettes"):onRelease(function(c)
 			palette.change(1)
 			brush.color = palette.getColor(palette.xColor, palette.yColor)
@@ -256,7 +255,12 @@ function love.load()
 			palette.change(3)
 			brush.color = palette.getColor(palette.xColor, palette.yColor)
 		end)
-	):setGroup("editing")
+	}
+
+	panelPalettes = gooi.newPanel(435, 3, 70, 70, "grid 3x1"):add(
+		radiosPalette[1],
+		radiosPalette[2],
+		radiosPalette[3]):setGroup("editing")
 
 	local function getColor(c)
 		if shiftDown() then
@@ -1515,6 +1519,7 @@ function love.keypressed(key)
 		if altDown() then
 			if key == "c" then
 				palette.change()
+				radiosPalette[palette.which]:select()
 				brush.color = palette.getColor(palette.xColor, palette.yColor)
 				--btnChangePalette.label = "Palette "..palette.which
 			end
