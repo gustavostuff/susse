@@ -6,7 +6,7 @@
 [![susse_ss.png](https://s28.postimg.org/6mkv5nzkd/susse_ss.png)](https://postimg.org/image/6zc9buhu1/)
 
 #### Süsse can do things like this with just a few clicks:
-[![optimized.gif](https://s24.postimg.org/tjzjmsmid/optimized.gif)](https://postimg.org/image/53hdsblrl/)
+[![optimized_better.gif](https://s27.postimg.org/wm75d0mmr/optimized_better.gif)](https://postimg.org/image/t2l7n7jwv/)
 
 Basic controls:
 
