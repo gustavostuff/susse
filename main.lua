@@ -110,8 +110,8 @@ function love.load()
 	style = {
 		font = font,
 		bgColor = "218AB8cc",
-		round = .1,
-		roundInside = .2,
+		radius = 2,
+		innerRadius = 3,
 		showBorder = true
 		--mode3d = true,
 		--glass = true
@@ -124,7 +124,7 @@ function love.load()
 	
 	btnNew = gooi.newButton({icon = imagesDir.."new.png"}):setTooltip("Create a new animation")
 	btnOpen = gooi.newButton({icon = imagesDir.."open.png"}):setTooltip("Open an animation")
-	btnPlay = gooi.newButton({icon = imgRight}):bg("#00ff0088"):setTooltip("Play the animacion")
+	btnPlay = gooi.newButton({icon = imgRight}):bg("#00ff0088"):setTooltip("Play the animation")
 	btnSave = gooi.newButton({icon = imgSave}):setTooltip("Save current animation")
 	btnSaveAs = gooi.newButton("as.."):setTooltip("Save as...")
 	btnPrev = gooi.newButton({icon = imgLeft}):bg("#ff880088"):setTooltip("Change to the previous frame")
@@ -133,7 +133,7 @@ function love.load()
 	btnAdd = gooi.newButton({icon = imagesDir.."add.png"}):setTooltip("Add a new frame (Shift to add in current position)")
 	chbLoop = gooi.newCheck("Loop"):change():bg("#FFFF0088"):setTooltip("Loop animation")
 	sliSpeed = gooi.newSlider(0.1):setTooltip("Delay in seconds for each frame"):setTooltip("Speed in seconds for each frame")
-	lblSpeed = gooi.newLabel("0.1"):setOrientation("center")
+	lblSpeed = gooi.newLabel("0.1"):setAlign("center")
 	chbGrid = gooi.newCheck("Grid"):change():setTooltip("Show/Hide grid")
 	btnMX = gooi.newButton({icon = imagesDir.."mX.png"}):bg("#88888888"):setTooltip("Mirror in X axis")
 	btnMY = gooi.newButton({icon = imagesDir.."mY.png"}):bg("#88888888"):setTooltip("Mirror in Y axis")
@@ -145,7 +145,7 @@ function love.load()
 	btnAA = gooi.newButton(""):setTooltip("Direction of the autoanimation")
 	chbCyclic = gooi.newCheck("Turn"):bg("#ff880088"):setTooltip("Makes the pixels to 'return' from the opposite side")
 	spiStep = gooi.newSpinner(0, 5, 1):setTooltip("Step size for the autoanimation")
-	--lblInd = gooi.newLabel("255"):setOrientation("center")
+	--lblInd = gooi.newLabel("255"):setAlign("center")
 	btnFill = gooi.newButton({icon = imgFill}):bg("#88888888"):setTooltip("Fill in 4 or 8 directions")
 	--[[
 	btnFS = gooi.newButton({icon = imagesDir.."fs.png"}):onRelease(function(c)
@@ -171,7 +171,7 @@ function love.load()
 		love.system.setClipboardText(lblCopySD.text)
 	end):setGroup("editing")
 
-	lblCopySD = gooi.newLabel(save_dir, 230, height() - 30, width() - 235, 25):setGroup("editing"):setOrientation("left")
+	lblCopySD = gooi.newLabel(save_dir, 230, height() - 30, width() - 235, 25):setGroup("editing"):setAlign("left")
 	:setOpaque(true):bg("#000000BB")
 
 	-- Put them in the panel:
@@ -736,14 +736,14 @@ function love.draw()
 		gr.setColor(255, 255, 255)
 		gr.draw(imgContrast, spinAlpha.x, spinAlpha.y)
 
-		gr.draw(imgContrastSmall, 106, 6)
-		gr.draw(imgContrastSmall, 141, 6)
+		gr.draw(imgContrastSmall, 106, 7)
+		gr.draw(imgContrastSmall, 141, 7)
 
-		gr.draw(imgContrastSmall, 106, 29)
-		gr.draw(imgContrastSmall, 141, 29)
+		gr.draw(imgContrastSmall, 106, 30)
+		gr.draw(imgContrastSmall, 141, 30)
 
-		gr.draw(imgContrastSmall, 106, 52)
-		gr.draw(imgContrastSmall, 141, 52)
+		gr.draw(imgContrastSmall, 106, 53)
+		gr.draw(imgContrastSmall, 141, 53)
 
 		gr.setColor(6, 96, 128)
 

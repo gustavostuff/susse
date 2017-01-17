@@ -1,6 +1,6 @@
 --[[
 
-Copyright (c) 2015 Gustavo Alberto Lara Gomez
+Copyright (c) 2015-2017 Gustavo Alberto Lara Gómez
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,8 +25,6 @@ THE SOFTWARE.
 
 gooi = {}
 gooi.__index = gooi
-gooi.defaultFont = love.graphics.newFont(12)
-gooi.font = defaultFont
 gooi.components = {}
 gooi.dialogFOK = function() end
 gooi.showingDialog = false
@@ -36,6 +34,8 @@ gooi.dialogW = 0
 gooi.desktop = false
 gooi.canvas = love.graphics.newCanvas(love.graphics.getWidth(), love.graphics.getHeight())
 gooi.sx = 1
+gooi.defaultFont = love.graphics.newFont(12)
+gooi.font = defaultFont
 gooi.sy = 1
 
 function gooi.desktopMode()
@@ -51,13 +51,13 @@ gooi.smallerSide = function()
 	return smallerSide
 end
 
-local circleRes = 40
+local circleRes = 50
 
 ----------------------------------------------------------------------------
 ----------------------------------------------------------------------------
 --------------------------   Label creator  --------------------------------
 ----------------------------------------------------------------------------
---function gooi.newLabel(id, text, x, y, w, h, icon, orientation,  group)
+--function gooi.newLabel(id, text, x, y, w, h, icon, align,  group)
 function gooi.newLabel(text, x, y, w, h)
 	local l = {}
 	
@@ -115,12 +115,12 @@ function gooi.newLabel(text, x, y, w, h)
 		-- Right by default:
 		local x = self.x + self.w - gooi.getFont():getWidth(t) - self.h / 2
 		local y = (self.y + self.h / 2) - (gooi.getFont():getHeight() / 2)
-		if self.orientation == "left" then
+		if self.align == "left" then
 			x = self.x + self.h / 2
 			if self.icon then
 				x = x + self.h / 2
 			end
-		elseif self.orientation == "center" then
+		elseif self.align == "center" then
 			x = (self.x + self.w / 2) - (gooi.getFont():getWidth(t) / 2)
 		end
 		if self.icon then
@@ -138,19 +138,19 @@ function gooi.newLabel(text, x, y, w, h)
 		love.graphics.setColor(fg)
 		love.graphics.print(self.text, math.floor(x), math.floor(y))
 	end
-	function l:setOrientation(o)
+	function l:setAlign(o)
 		if o == "left" then
-			self.orientation = o
+			self.align = o
 		elseif o == "right" then
-			self.orientation = o
+			self.align = o
 		elseif o == "center" then
-			self.orientation = o
+			self.align = o
 		else
-			error("orientation '"..o.."' not valid")
+			error("align '"..o.."' not valid")
 		end
 		return self
 	end
-	l:setOrientation(params.orientation or "right")
+	l:setAlign(params.align or "right")
 	function l:setIcon(icon)
 		if type(icon) == "string" then
 			icon = love.graphics.newImage(icon)
@@ -230,12 +230,12 @@ function gooi.newButton(text, x, y, w, h)
 		local t = self.text
 		local x = (self.x + self.w / 2) - (gooi.getFont():getWidth(t) / 2)
 		local y = (self.y + self.h / 2) - (gooi.getFont():getHeight() / 2)
-		if self.orientation == "left" then
+		if self.align == "left" then
 			x = self.x + self.h / 2
 			if self.icon then
 				x = x + self.h / 2
 			end
-		elseif self.orientation == "right" then
+		elseif self.align == "right" then
 			x = self.x + self.w - self.h / 2 - gooi.getFont():getWidth(self.text)
 		end
 		if self.icon then
@@ -252,19 +252,19 @@ function gooi.newButton(text, x, y, w, h)
 		love.graphics.setColor(fg)
 		love.graphics.print(t, math.floor(x), math.floor(y + self.pressedMove))
 	end
-	function b:setOrientation(o)
+	function b:setAlign(o)
 		if o == "left" then
-			self.orientation = o
+			self.align = o
 		elseif o == "right" then
-			self.orientation = o
+			self.align = o
 		elseif o == "center" then
-			self.orientation = o
+			self.align = o
 		else
-			error("orientation '"..o.."' not valid")
+			error("align '"..o.."' not valid")
 		end
 		return self
 	end
-	b:setOrientation(params.orientation or "center")
+	b:setAlign(params.align or "center")
 	function b:setIcon(icon)
 		if type(icon) == "string" then
 			icon = love.graphics.newImage(icon)
@@ -316,6 +316,7 @@ function gooi.newSlider(value, x, y, w, h)
 
 	s = component.new(id, "slider", x, y, w, h, params.group)
 	s.value = params.value or 0.5
+	s.mode = "h"-- Horizontal
 
 	if s.value < 0 then s.value = 0 end
 	if s.value > 1 then s.value = 1 end
@@ -325,40 +326,96 @@ function gooi.newSlider(value, x, y, w, h)
 
 	s.displacement = (s.w - s.h) * s.value
 	function s:drawSpecifics(fg)
-		local mC = math.floor(self.h / 8) -- Margin corner.
-		local rad = self.h * .4 -- Normal radius for the white circles.
-		local side = math.floor(self.h - mC * 2)
-		love.graphics.setLineWidth(1)
-		love.graphics.setColor(fg)
-		if self.pressed or self.touch then rad = rad * .5 end
-		local lineSpace = self.w - self.h
-		love.graphics.rectangle("fill",
-			math.floor(self.x + self.h / 2 + self.value * lineSpace - side / 2),
-			math.floor(self.y + mC),
-			math.floor(side),
-			math.floor(side),
-			self.roundInside * side / 2,
-			self.roundInside * side / 2,
-			circleRes)
-		local x1Line = self.x + self.h / 2
-		local x2Line = self.x + self.h / 2 + self.value * lineSpace - side / 2
-		if x2Line > x1Line then
-			love.graphics.line(
-				x1Line,
-				self.y + self.h / 2,
-				x2Line,
-				self.y + self.h / 2)
+		if self.mode == "v" then
+			local mC = math.floor(self.w / 8) -- Margin corner.
+			local rad = self.w * .4 -- Normal radius for the white circles.
+			local side = math.floor(self.w - mC * 2)
+			
+			love.graphics.setLineWidth(1)
+			love.graphics.setColor(fg)
+			if self.pressed or self.touch then rad = rad * .5 end
+		
+			local lineSpace = self.h - self.w
+			local xPivotIndicator = math.floor(self.x + self.w / 2 - side / 2)
+			local yPivotIndicator = math.floor(self.y + self.h - (self.w / 2 + self.value * lineSpace + side / 2))
+			
+
+			love.graphics.rectangle("fill",
+				xPivotIndicator,
+				yPivotIndicator,
+				math.floor(side),
+				math.floor(side),
+				self.innerRadius,
+				self.innerRadius,
+				circleRes)
+
+			local x1Line = self.x + self.w / 2
+			local y1Line = self.y + self.h - self.w / 2
+			local x2Line = self.x + self.w / 2
+			local y2Line = self.y + self.h - (self.w / 2 + self.value * lineSpace - side / 2)
+
+			if y2Line < y1Line then
+				love.graphics.line(x1Line, y1Line, x2Line, y2Line)
+			end
+		else
+			local mC = math.floor(self.h / 8) -- Margin corner.
+			local rad = self.h * .4 -- Normal radius for the white circles.
+			local side = math.floor(self.h - mC * 2)
+
+			love.graphics.setLineWidth(1)
+			love.graphics.setColor(fg)
+			if self.pressed or self.touch then rad = rad * .5 end
+			local lineSpace = self.w - self.h
+
+			local xPivotIndicator = math.floor(self.x + self.h / 2 + self.value * lineSpace - side / 2)
+			local yPivotIndicator = math.floor(self.y + mC)
+
+			love.graphics.rectangle("fill",
+				xPivotIndicator,
+				yPivotIndicator,
+				math.floor(side),
+				math.floor(side),
+				self.innerRadius,
+				self.innerRadius,
+				circleRes)
+			local x1Line = self.x + self.h / 2
+			local y1Line = self.y + self.h / 2
+			local x2Line = self.x + self.h / 2 + self.value * lineSpace - side / 2
+			local y2Line = self.y + self.h / 2
+
+			if x2Line > x1Line then
+				love.graphics.line(x1Line, y1Line, x2Line, y2Line)
+			end
 		end
 	end
+	function s:vertical()
+		self.mode = "v"-- Vertical
+		return self
+	end
 	function s:updateGUI()
-		local theX = love.mouse.getX() / gooi.sx
-		if self.touch then
-			theX = self.touch.x
+		local thePos = love.mouse.getX() / gooi.sx
+		if self.mode == "v" then
+			thePos = love.mouse.getY() / gooi.sy
 		end
-		self.displacement = (theX - (self.x + self.h / 2))
+
+		if self.touch then
+			thePos = self.touch.x
+			if self.mode == "v" then
+				thePos = self.touch.y
+			end
+		end
+
+		self.displacement = (thePos - (self.x + self.h / 2))
 		if self.displacement > (self.w - self.h) then self.displacement = self.w - self.h end
 		if self.displacement < 0 then self.displacement = 0 end
 		self.value = self.displacement / (self.w - self.h)
+
+		if self.mode == "v" then
+			self.displacement = (thePos - (self.y + self.w / 2))
+			if self.displacement > (self.h - self.w) then self.displacement = self.h - self.w end
+			if self.displacement < 0 then self.displacement = 0 end
+			self.value = 1 - self.displacement / (self.h - self.w)
+		end
 	end
 	function s:setValue(v)
 		if v < 0 then v = 0 end
@@ -367,7 +424,7 @@ function gooi.newSlider(value, x, y, w, h)
 		return self
 	end
 	function s:getValue()
-		return self.value
+		return gooi.round(self.value, 2)
 	end
 	function s:rebuild()
 		--self:generateBorder()
@@ -414,7 +471,7 @@ function gooi.newCheck(text, x, y, w, h)
 		"checkbox"
 	)
 
-	chb = component.new(id, "checkbox", x, y, w, h, group)
+	chb = component.new(id, "checkbox", x, y, w, h, params.group)
 	chb.checked = params.checked or false
 	chb.text = params.text or defText
 	function chb:rebuild()
@@ -437,8 +494,8 @@ function gooi.newCheck(text, x, y, w, h)
 				recWhite[2],
 				recWhite[3],
 				recWhite[4],
-				self.roundInside * side / 2,
-				self.roundInside * side / 2,
+				self.innerRadius,
+				self.innerRadius,
 				circleRes)
 		local fill = "line"
 		love.graphics.setColor(fg)
@@ -451,8 +508,8 @@ function gooi.newCheck(text, x, y, w, h)
 				recWhite[2] + marginRecWhite,
 				recWhite[3] - marginRecWhite * 2,
 				recWhite[4] - marginRecWhite * 2,
-				self.roundInside * side * .7 / 2,
-				self.roundInside * side * .7 / 2,
+				self.innerRadius,
+				self.innerRadius,
 				circleRes)
 		end
 		-- text of the checkbox:
@@ -535,8 +592,8 @@ function gooi.newRadio(text, radioGroup, x, y, w, h)
 			recBlack[2],
 			recBlack[3],
 			recBlack[4],
-			self.roundInside * side / 2,
-			self.roundInside * side / 2,
+			self.innerRadius,
+			self.innerRadius,
 			circleRes)
 		love.graphics.setColor(fg)
 		local marginRecBlack = math.floor(recBlack[3] / 4)
@@ -546,8 +603,8 @@ function gooi.newRadio(text, radioGroup, x, y, w, h)
 			recBlack[2] + marginRecBlack,
 			recBlack[3] - marginRecBlack * 2,
 			recBlack[4] - marginRecBlack * 2,
-			self.roundInside * side / 2,
-			self.roundInside * side / 2,
+			self.innerRadius,
+			self.innerRadius,
 			circleRes)
 		end
 		love.graphics.print(self.text,
@@ -629,8 +686,8 @@ function gooi.newText(text, x, y, w, h)
 			math.floor(self.y) + marginRecBlack,
 			tW,
 			tH,
-			self.roundInside * tH / 2,
-			self.roundInside * tH / 2,
+			self.innerRadius,
+			self.innerRadius,
 			circleRes)
 		love.graphics.setColor(fg)
 		if self.hasFocus then
@@ -675,7 +732,8 @@ function gooi.newText(text, x, y, w, h)
 			if self.indexCursor < 0 then
 				self.indexCursor = 0
 			end
-			self.displacementCursor = self.x + marginText + gooi.getFont():getWidth(string.utf8sub(self.text, 1, self.indexCursor))
+			self.displacementCursor = self.x + marginText +
+				gooi.getFont():getWidth(string.utf8sub(self.text, 1, self.indexCursor))
 		else
 			self.indexCursor = self.indexCursor + 1
 			self.displacementCursor = self.x + marginText + gooi.getFont():getWidth(self.text)
@@ -687,6 +745,16 @@ function gooi.newText(text, x, y, w, h)
 		love.graphics.print(self.text,
 			math.floor(self.x + marginRecBlack * 2),
 			math.floor(self.y + self.h / 2 - gooi.getFont():getHeight() / 2))
+	end
+
+	function f:getText()
+		return self.text
+	end
+
+	function f:setText(text)
+		self.text = text
+		self.indexCursor = string.utf8len(text)
+		self:moveCursor(true)
 	end
 
 	return gooi.storeComponent(f, id)
@@ -750,8 +818,8 @@ function gooi.newBar(value, x, y, w, h)
 			math.floor(self.y) + marginBars,
 			bW, 
 			bH,
-			self.roundInside * bH / 2,
-			self.roundInside * bH / 2,
+			self.innerRadius,
+			self.innerRadius,
 			circleRes)
 		end
 		maskBar()
@@ -783,6 +851,9 @@ function gooi.newBar(value, x, y, w, h)
 		if self.value < 0 then self.value = 0 end
 		return self
 	end
+	function p:getValue()
+		return gooi.round(self.value, 2)
+	end
 	function p:decreaseAt(amount)
 		self.changing = -1
 		self.speed = amount or 0.1
@@ -793,16 +864,8 @@ function gooi.newBar(value, x, y, w, h)
 		self.speed = amount or 0.1
 		return self
 	end
-	function p:increase(amount, dt)
-		self:changeValue(amount, dt, 1)
-		return self
-	end
-	function p:setLength(l)
+	function p:setWidth(l)
 		self.w = l
-		return self
-	end
-	function p:decrease(amount, dt)
-		self:changeValue(amount, dt, -1)
 		return self
 	end
 	return gooi.storeComponent(p, id)
@@ -852,7 +915,7 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 	local v = params.value or 5
 	local maxv = params.max or 10
 	x, y, w, h = gooi.checkBounds(tostring(maxv), x, y, w, h, "spinner")
-	s = component.new(id, "spinner", x, y, w, h, group)
+	s = component.new(id, "spinner", x, y, w, h, params.group)
 	s.value = v
 	s.realValue = s.value
 	s.max = maxv
@@ -896,16 +959,16 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 				recWhite[2] + mC * 2,
 				recWhite[3]- mC * 4,
 				recWhite[4]- mC * 4,
-				self.roundInside * side / 2,
-				self.roundInside * side / 2,
+				self.innerRadius,
+				self.innerRadius,
 				circleRes)
 		love.graphics.rectangle("fill",
 				recWhite[1] + mC + math.floor(self.w - self.h),
 				recWhite[2] + mC,
 				recWhite[3]- mC * 2,
 				recWhite[4]- mC * 2,
-				self.roundInside * side / 2,
-				self.roundInside * side / 2,
+				self.innerRadius,
+				self.innerRadius,
 				circleRes)
 
 		love.graphics.setLineStyle("rough")
@@ -937,6 +1000,15 @@ function gooi.newSpinner(min, max, value, x, y, w, h)
 		return math.sqrt(math.pow(dx, 2) + math.pow(dy, 2)) < self.radCirc * 1.1
 		]]
 		return self:overIt() and x >= (self.x + self.w / 2)
+	end
+	function s:plus()
+		self:changeValue(1)
+	end
+	function s:minus()
+		self:changeValue(-1)
+	end
+	function s:getValue()
+		return gooi.round(self.value, 2)
 	end
 	function s:changeValue(sense)
 		local newV = self.value + self.step * sense
@@ -1105,11 +1177,11 @@ function gooi.newJoy(x, y, size, deadZone, image)
 	-- Get numbers with presicion of two decimals:
 	function s:xValue()
 		if self:onDeadZone() then return 0 end
-		return tonumber(string.format("%.3f",(self.xStick - self:theX()) / (self.r - self.rStick)))
+		return gooi.round((self.xStick - self:theX()) / (self.r - self.rStick), 2)
 	end
 	function s:yValue()
 		if self:onDeadZone() then return 0 end
-		return tonumber(string.format("%.3f",(self.yStick - self:theY()) / (self.r - self.rStick)))
+		return gooi.round((self.yStick - self:theY()) / (self.r - self.rStick), 2)
 	end
 	function s:overStick(x, y)
 		local dx = (self.xStick - x)
@@ -1173,6 +1245,10 @@ function gooi.newKnob(value, x, y, size)
 
 	k.initialAngle = 0
 	k.finalAngle = 180
+
+	function k:getValue()
+		return gooi.round(self.value, 2)
+	end
 
 	function k:setValue(v)
 		if v > 1 then v = 1 end
@@ -1337,7 +1413,7 @@ function gooi.newPanel(x, y, w, h, theLayout)
 				-- Set bounds according to the parent layout:
 				c:setBounds(cell.x, cell.y, cell.w, cell.h)
 
-				-- Save sons:
+				-- Save son:
 				table.insert(self.sons,
 				{
 					id = c.id,
@@ -1418,6 +1494,15 @@ function gooi.newPanel(x, y, w, h, theLayout)
 				error("valid positions are: 't-l', 't-r', 'b-l' and 'b-r'")
 			end
 			self.layout:suit(self, ref, position)
+			-- Save son:
+			table.insert(self.sons,
+			{
+				id = ref.id,
+				parentId = self.id,
+				cellRow = -1,
+				cellCol = -1,
+				ref = ref
+			})
 			if ref.rebuild then ref:rebuild() end
 		end
 		return self
@@ -1508,7 +1593,7 @@ function gooi.dialog(msg, fPositive, fNegative, kind)
 		gooi.panelDialog:setColspan(1, 1, 3)-- For the msg:
 		gooi.panelDialog:setRowspan(1, 1, 2)
 
-		gooi.lblDialog = gooi.newLabel(gooi.dialogMsg):setOrientation("center")
+		gooi.lblDialog = gooi.newLabel(gooi.dialogMsg):setAlign("center")
 			:setOpaque(false)
 		gooi.lblDialog.lblFlag = true
 		gooi.panelDialog:add(gooi.lblDialog, "1,1")
@@ -1522,15 +1607,15 @@ function gooi.dialog(msg, fPositive, fNegative, kind)
 			end)
 			gooi.okButton.okFlag   = true
 			gooi.panelDialog:add(gooi.okButton,  "3,2")
-			gooi.radCorner = gooi.okButton.round * gooi.okButton.h / 2
+			gooi.radCorner = gooi.okButton.radius
 		else
-			gooi.noButton  = gooi.newButton("NO"):onRelease(function()
+			gooi.noButton  = gooi.newButton("Cancel"):onRelease(function()
 				if fNegative then
 					fNegative()
 				end
 				gooi.closeDialog()
 			end)
-			gooi.yesButton = gooi.newButton("YES"):onRelease(function()
+			gooi.yesButton = gooi.newButton("Yes"):onRelease(function()
 				if fPositive then
 					fPositive()
 				end
@@ -1540,7 +1625,7 @@ function gooi.dialog(msg, fPositive, fNegative, kind)
 			gooi.yesButton.yesFlag = true
 			gooi.panelDialog:add(gooi.noButton,  "3,1")
 			gooi.panelDialog:add(gooi.yesButton, "3,3")
-			gooi.radCorner = gooi.noButton.round * gooi.noButton.h / 2
+			gooi.radCorner = gooi.noButton.radius
 		end
 	end
 
@@ -1586,6 +1671,10 @@ function gooi.setCanvas(c)
 	gooi.sy = love.graphics.getHeight() / gooi.canvas:getHeight()
 end
 
+function gooi.round(num, numDecimalPlaces)
+	local mult = 10^(numDecimalPlaces or 0)
+	return math.floor(num * mult + 0.5) / mult
+end
 
 function gooi.removeComponent(comp)
 	for k, v in pairs(gooi.components) do
@@ -1621,8 +1710,8 @@ function gooi.setStyle(style)
 	component.style.bgColor = style.bgColor or component.style.bgColor
 	component.style.fgColor = style.fgColor or component.style.fgColor
 	component.style.tooltipFont = style.tooltipFont or component.style.tooltipFont
-	component.style.round = style.round or component.style.round
-	component.style.roundInside = style.roundInside or component.style.roundInside
+	component.style.radius = style.radius or component.style.radius
+	component.style.innerRadius = style.innerRadius or component.style.innerRadius
 	component.style.showBorder = style.showBorder or false
 	component.style.borderColor = style.borderColor or component.style.borderColor
 	component.style.borderWidth = style.borderWidth or component.style.borderWidth
@@ -1630,12 +1719,6 @@ function gooi.setStyle(style)
 	component.style.glass = style.glass or false
 	component.style.font = style.font or component.style.font
 	gooi.font = component.style.font
-
-	if component.style.round < 0 then component.style.round = 0 end
-	if component.style.roundInside < 0 then component.style.roundInside = 0 end
-
-	if component.style.round > 1 then component.style.round = 1 end
-	if component.style.roundInside > 1 then component.style.roundInside = 1 end
 end
 
 -- Update what needs to be updated:
@@ -1644,7 +1727,7 @@ local timerStepChar = 0
 function gooi.update(dt)
 	for k, c in pairs(gooi.components) do
 		if c.type == "progressbar" and c.visible then
-			if c.changing then
+			if c.changing and c.enabled then
 				c.value = c.value + c.speed * c.changing * dt
 				if c.value > 1 then c.value = 1 end
 				if c.value < 0 then c.value = 0 end
@@ -1729,7 +1812,7 @@ function gooi.draw(group)
 			if actualGroup == comp.group and comp.visible then
 				comp:draw()-- Draw the base.
 
-				love.graphics.setFont(gooi.getFont())-- Specific or a common font.
+				love.graphics.setFont(gooi.getFont(comp))-- Specific or a common font.
 
 				local fg = comp.fgColor
 				if not comp.enabled then
@@ -1764,7 +1847,7 @@ function gooi.draw(group)
 	if compWithTooltip and os ~= "Android" and os ~= "iOS" and gooi.desktop then
 		local disp = love.graphics.getWidth() / 100
 		local unit = compWithTooltip.tooltipFont:getHeight() / 5
-		love.graphics.setColor(0, 0, 0, 150)
+		love.graphics.setColor(0, 0, 0, 180)
 		love.graphics.setFont(compWithTooltip.tooltipFont)
 		local xRect = love.mouse.getX() + disp - unit
 		local yRect = love.mouse.getY() - disp * 2 - unit
@@ -1786,7 +1869,7 @@ function gooi.draw(group)
 	end
 
 	if gooi.showingDialog then
-		love.graphics.setFont(gooi.panelDialog.font or gooi.getFont())-- Specific or a common font.
+		love.graphics.setFont(gooi.getFont())-- Specific or a common font.
 		local w, h = love.graphics.getWidth(), love.graphics.getHeight()
 
 		love.graphics.setColor(0, 0, 0, 127)
