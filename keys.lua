@@ -1,6 +1,8 @@
 local keys = {
   escape = 'escape',
   c = 'c',
+  left = 'left',
+  right = 'right',
 
   ctrlDown = function ()
     return love.keyboard.isDown('lctrl') or love.keyboard.isDown('rctrl')

@@ -3,8 +3,29 @@ local keys = require("keys")
 local utils = require("utils")
 local colors = require("colors")
 local textures = require("textures")
+local spriteSheetManager = require("sprite-sheet-manager")
 
 zoom = 4
+
+local function initWorkspaceData()
+	animation = {
+		frameCount = 10,
+		frameWidth = 10,
+		frameHeight = 10,
+	}
+
+	spriteSheetWidth, spriteSheetHeight = utils:calculateSpriteSheetSize(
+		animation.frameCount,
+		animation.frameWidth,
+		animation.frameHeight
+	)
+
+	spriteSheetManager:init({
+		animation = animation,
+		spriteSheetWidth = spriteSheetWidth,
+		spriteSheetHeight = spriteSheetHeight,
+	})
+end
 
 local function initCanvases()
 	appCanvas = love.graphics.newCanvas(globals.appWidth, globals.appHeight)
@@ -12,17 +33,23 @@ local function initCanvases()
 	appCanvasScale = love.graphics.getWidth() / globals.appWidth
 
 	offScreenArea = {
-		canvas = love.graphics.newCanvas(64, 64)
+		canvas = love.graphics.newCanvas(spriteSheetWidth, spriteSheetHeight)
 	}
 	offScreenArea.x = 100
-	offScreenArea.y = 20
+	offScreenArea.y = 50
 
 	activeArea = {
-		canvas = love.graphics.newCanvas(16, 16)
+		canvas = love.graphics.newCanvas(animation.frameWidth, animation.frameHeight)
 	}
-	activeArea.x = 200
+	activeArea.x = 150
 	activeArea.y = 20
 	activeArea.canvas:setFilter('nearest', 'nearest')
+
+	currentFrameQuad = love.graphics.newQuad(0, 0,
+		animation.frameWidth,
+		animation.frameHeight,
+		offScreenArea.canvas:getDimensions()
+	)
 end
 
 local function initTextures()
@@ -47,6 +74,7 @@ end
 function love.load()
 	love.graphics.setLineStyle('rough')
 	love.graphics.setLineWidth(1)
+	initWorkspaceData()
 	initCanvases()
 	initTextures()
 	initCursors()
@@ -80,9 +108,15 @@ local function drawCanvasesBgs()
 	love.graphics.draw(textures.chessPattern, textures.offScreenQuad, offScreenArea.x, offScreenArea.y)
 end
 
-local function activeToOffScreenRenderer(mode)
+local function getScissorRect()
+	local x, y, w, h = currentFrameQuad:getViewport()
+	return {x = x, y = y, w = w, h = h}
+end
+
+local function renderToOffscreenCanvas(originX, originY)
 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
-	local px, py = (x - activeArea.x) / zoom, (y - activeArea.y) / zoom
+	local px = math.floor((x - originX) / zoom)
+	local py = math.floor((y - originY) / zoom)
 	
 	local blendModeBkp = love.graphics.getBlendMode()
 	love.graphics.setBlendMode('replace')
@@ -91,20 +125,26 @@ local function activeToOffScreenRenderer(mode)
 	else
 		love.graphics.setColor(color)
 	end
-	love.graphics.points(math.floor(px), math.floor(py))
+
+	local rect = getScissorRect()
+	-- love.graphics.setScissor(rect.x, rect.y, rect.w, rect.h)
+	love.graphics.circle('fill', math.floor(px), math.floor(py), 2)
+	-- love.graphics.setScissor()
+
 	love.graphics.setBlendMode(blendModeBkp)
 end
 
 local function drawActiveArea()
-	activeArea.canvas:renderTo(function()
-		if love.mouse.isDown(1) then
-			activeToOffScreenRenderer('active')
-		end
-	end)
 	offScreenArea.canvas:renderTo(function()
 		if love.mouse.isDown(1) then
-			activeToOffScreenRenderer('offscreen')
+			renderToOffscreenCanvas(activeArea.x, activeArea.y)
 		end
+	end)
+
+	activeArea.canvas:renderTo(function()
+		love.graphics.clear(colors.transparent)
+		love.graphics.setColor(colors.white)
+		love.graphics.draw(offScreenArea.canvas, currentFrameQuad, 0, 0)
 	end)
 end
 
@@ -113,6 +153,7 @@ local function drawDebugInfo()
 		'FPS: ' .. love.timer.getFPS(),
 		'off-screen area W: ' .. offScreenArea.canvas:getWidth(),
 		'off-screen area H: ' .. offScreenArea.canvas:getHeight(),
+		'current frame: ' .. spriteSheetManager.currentFrameIndex,
 	}
 	for i, item in ipairs(items) do
 		love.graphics.print(item, 10, 10 + i * 20)
@@ -135,6 +176,13 @@ function love.draw()
 end
 
 function love.keypressed(key, scancode, isrepeat)
+	if keys.isAnyOf(key, {keys.left, keys.right}) then
+		spriteSheetManager:changeActiveFrame(key == keys.right and 'next' or 'previous')
+		local newFrameQuad = spriteSheetManager:getQuadForCurrentFrameIndex()
+		currentFrameQuad:setViewport(newFrameQuad:getViewport())
+	end
+
+	-- debug stuff
 	if key == keys.escape then
 		love.event.quit()
 	end
