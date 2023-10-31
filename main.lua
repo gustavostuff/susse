@@ -45,6 +45,8 @@ local function initCursors()
 end
 
 function love.load()
+	love.graphics.setLineStyle('rough')
+	love.graphics.setLineWidth(1)
 	initCanvases()
 	initTextures()
 	initCursors()
@@ -54,14 +56,20 @@ function love.update(dt)
 
 end
 
+local function drawCursor()
+	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
+	x = math.floor(x / zoom) * zoom
+	y = math.floor(y / zoom) * zoom
+	love.graphics.setColor(colors.flameOrange)
+	love.graphics.rectangle('line', x - zoom, y - zoom, zoom + 1, zoom + 1)
+end
+
 local function drawAppCanvas()
 	love.graphics.setColor(colors.white)
 	love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
 	love.graphics.draw(activeArea.canvas, activeArea.x, activeArea.y, 0, zoom, zoom)
 
-	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
-	love.graphics.setColor(colors.flameOrange)
-	love.graphics.points(x, y)
+	drawCursor()
 end
 
 local function drawCanvasesBgs()
@@ -83,7 +91,7 @@ local function activeToOffScreenRenderer(mode)
 	else
 		love.graphics.setColor(color)
 	end
-	love.graphics.points(px, py)
+	love.graphics.points(math.floor(px), math.floor(py))
 	love.graphics.setBlendMode(blendModeBkp)
 end
 
