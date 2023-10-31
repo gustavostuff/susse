@@ -9,9 +9,9 @@ zoom = 4
 
 local function initWorkspaceData()
 	animation = {
-		frameCount = 10,
-		frameWidth = 10,
-		frameHeight = 10,
+		frameCount = 3,
+		frameWidth = 24,
+		frameHeight = 16,
 	}
 
 	spriteSheetWidth, spriteSheetHeight = utils:calculateSpriteSheetSize(
@@ -35,7 +35,7 @@ local function initCanvases()
 	offScreenArea = {
 		canvas = love.graphics.newCanvas(spriteSheetWidth, spriteSheetHeight)
 	}
-	offScreenArea.x = 100
+	offScreenArea.x = 50
 	offScreenArea.y = 50
 
 	activeArea = {
@@ -86,8 +86,6 @@ end
 
 local function drawCursor()
 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
-	x = math.floor(x / zoom) * zoom
-	y = math.floor(y / zoom) * zoom
 	love.graphics.setColor(colors.flameOrange)
 	love.graphics.rectangle('line', x - zoom, y - zoom, zoom + 1, zoom + 1)
 end
@@ -128,16 +126,27 @@ local function renderToOffscreenCanvas(originX, originY)
 
 	local rect = getScissorRect()
 	-- love.graphics.setScissor(rect.x, rect.y, rect.w, rect.h)
-	love.graphics.circle('fill', math.floor(px), math.floor(py), 2)
+	-- love.graphics.circle('fill', math.floor(px), math.floor(py), 2)
+	local x, y, _, _ = currentFrameQuad:getViewport()
+	love.graphics.points(
+		math.floor(px + x),
+		math.floor(py + y)
+	)
 	-- love.graphics.setScissor()
 
 	love.graphics.setBlendMode(blendModeBkp)
 end
 
 local function drawActiveArea()
+	love.graphics.setColor(colors.froly)
+	local x, y, w, h = currentFrameQuad:getViewport()
+	love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
 	offScreenArea.canvas:renderTo(function()
 		if love.mouse.isDown(1) then
-			renderToOffscreenCanvas(activeArea.x, activeArea.y)
+			renderToOffscreenCanvas(
+				activeArea.x,
+				activeArea.y
+			)
 		end
 	end)
 
@@ -149,11 +158,13 @@ local function drawActiveArea()
 end
 
 local function drawDebugInfo()
+	local x, y, w, h = currentFrameQuad:getViewport()
 	local items = {
 		'FPS: ' .. love.timer.getFPS(),
 		'off-screen area W: ' .. offScreenArea.canvas:getWidth(),
 		'off-screen area H: ' .. offScreenArea.canvas:getHeight(),
 		'current frame: ' .. spriteSheetManager.currentFrameIndex,
+		'quad viewport: ' .. x .. ', ' .. y .. ', ' .. w .. ', ' .. h,
 	}
 	for i, item in ipairs(items) do
 		love.graphics.print(item, 10, 10 + i * 20)
