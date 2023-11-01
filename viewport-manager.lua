@@ -4,7 +4,7 @@ local globals = require 'globals'
 local utils = require 'utils'
 local viewportManager = {
   minZoom = 1,
-  maxZoom = 10,
+  maxZoom = 16,
   draggingStartX = 0,
   draggingStartY = 0
 }
@@ -71,8 +71,9 @@ function viewportManager:wheelMoved(wheelY)
     local offsetX = (x - self.activeArea.x) / self.zoom
     local offsetY = (y - self.activeArea.y) / self.zoom
 
-    local scale = (wheelY > 0) and (self.zoom * 2) or (self.zoom / 2)
-    self.zoom = ((scale > 8) and 8) or (scale < 1 and 1) or scale
+    local scale = (wheelY > 0) and (self.zoom + 1) or (self.zoom - 1)
+    self.zoom = ((scale > self.maxZoom) and self.maxZoom) or
+      (scale < self.minZoom and self.minZoom) or scale
 
     self.activeArea.x = math.floor(x - offsetX * self.zoom)
     self.activeArea.y = math.floor(y - offsetY * self.zoom)

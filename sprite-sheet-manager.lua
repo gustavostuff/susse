@@ -64,9 +64,9 @@ function spriteSheetManager:renderToOffscreenCanvas(activeAreaX, activeAreaY, zo
 	end
 
 	love.graphics.setScissor(unpack(quad))
-	love.graphics.rectangle('fill',
+	love.graphics.circle('fill',
 		math.floor(px + quad[1]),
-		math.floor(py + quad[2]), 1, 1
+		math.floor(py + quad[2]), 3
 	)
 	love.graphics.setScissor()
 
