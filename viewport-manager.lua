@@ -2,12 +2,14 @@ local colors = require 'colors'
 local textures = require 'textures'
 local globals = require 'globals'
 local utils = require 'utils'
-local zoomManager = {
+local viewportManager = {
   minZoom = 1,
   maxZoom = 10,
+  draggingStartX = 0,
+  draggingStartY = 0
 }
 
-function zoomManager:init(data)
+function viewportManager:init(data)
   data = data or {}
   self.zoom = 4
 
@@ -23,7 +25,21 @@ function zoomManager:init(data)
   self:refreshQuads(0, 0)
 end
 
-function zoomManager:refreshQuads(x, y)
+function viewportManager:update(dt)
+  if self.dragging then
+    local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
+    local dx = x - self.draggingStartX
+    local dy = y - self.draggingStartY
+    self.activeArea.x = math.floor(self.activeArea.x + dx)
+    self.activeArea.y = math.floor(self.activeArea.y + dy)
+
+    -- Save the current mouse position for the next frame
+    self.draggingStartX = x
+    self.draggingStartY = y
+  end
+end
+
+function viewportManager:refreshQuads(x, y)
   self.currentFrameQuad = love.graphics.newQuad(x, y,
 		self.animation.frameWidth,
 		self.animation.frameHeight,
@@ -31,7 +47,7 @@ function zoomManager:refreshQuads(x, y)
 	)
 end
 
-function zoomManager:draw()
+function viewportManager:draw()
   self.activeArea.canvas:renderTo(function()
 		love.graphics.clear(colors.transparent)
 		love.graphics.setColor(colors.white)
@@ -48,12 +64,7 @@ function zoomManager:draw()
   )
 end
 
-function zoomManager:wheelMoved(wheelY)
-  -- if y > 0 then
-  --   self.zoom = self.zoom < self.maxZoom and (self.zoom + 1) or self.maxZoom
-  -- elseif y < 0 then
-  --   self.zoom = self.zoom > self.minZoom and (self.zoom - 1) or self.minZoom
-  -- end
+function viewportManager:wheelMoved(wheelY)
   if y ~= 0 then
     local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
 
@@ -68,4 +79,4 @@ function zoomManager:wheelMoved(wheelY)
   end
 end
 
-return zoomManager
+return viewportManager

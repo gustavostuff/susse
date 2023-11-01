@@ -4,7 +4,7 @@ local utils = require 'utils'
 local colors = require 'colors'
 local textures = require 'textures'
 local spriteSheetManager = require 'sprite-sheet-manager'
-local zoomManager = require 'zoom-manager'
+local viewportManager = require 'viewport-manager'
 
 local function initWorkspaceData()
 	animation = {
@@ -66,7 +66,7 @@ function love.load()
 	initCanvases()
 	initTextures()
 	initCursors()
-	zoomManager:init({
+	viewportManager:init({
 		activeArea = activeArea,
 		offScreenArea = offScreenArea,
 		currentFrameQuad = currentFrameQuad,
@@ -75,24 +75,24 @@ function love.load()
 end
 
 function love.update(dt)
-
+	viewportManager:update(dt)
 end
 
 -- local function drawCursor()
 -- 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
 -- 	love.graphics.setColor(colors.flameOrange)
 -- 	love.graphics.rectangle('line',
--- 		x - zoomManager.zoom,
--- 		y - zoomManager.zoom,
--- 		zoomManager.zoom + 1,
--- 		zoomManager.zoom + 1
+-- 		x - viewportManager.zoom,
+-- 		y - viewportManager.zoom,
+-- 		viewportManager.zoom + 1,
+-- 		viewportManager.zoom + 1
 -- 	)
 -- end
 
 local function drawAppCanvas()
 	love.graphics.setColor(colors.white)
 	love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
-	zoomManager:draw()
+	viewportManager:draw()
 
 	-- drawCursor()
 end
@@ -104,10 +104,10 @@ local function drawCanvasesBgs()
 	love.graphics.setScissor(
 		activeArea.x,
 		activeArea.y,
-		activeArea.canvas:getWidth() * zoomManager.zoom,
-		activeArea.canvas:getHeight() * zoomManager.zoom
+		activeArea.canvas:getWidth() * viewportManager.zoom,
+		activeArea.canvas:getHeight() * viewportManager.zoom
 	)
-	love.graphics.draw(textures.chessPattern, zoomManager.activeQuad, 0, 0)
+	love.graphics.draw(textures.chessPattern, viewportManager.activeQuad, 0, 0)
 	love.graphics.setScissor()
 end
 
@@ -117,15 +117,15 @@ local function drawActiveArea()
 			spriteSheetManager:renderToOffscreenCanvas(
 				activeArea.x,
 				activeArea.y,
-				zoomManager.zoom,
-				{zoomManager.currentFrameQuad:getViewport()}
+				viewportManager.zoom,
+				{viewportManager.currentFrameQuad:getViewport()}
 			)
 		end
 	end)
 end
 
 local function drawDebugInfo()
-	local x, y, w, h = zoomManager.currentFrameQuad:getViewport()
+	local x, y, w, h = viewportManager.currentFrameQuad:getViewport()
 	local items = {
 		'FPS: ' .. love.timer.getFPS(),
 		'frame W: ' .. animation.frameWidth,
@@ -137,7 +137,7 @@ local function drawDebugInfo()
 		'sprite sheet H: ' .. offScreenArea.canvas:getHeight(),
 		'current frame: ' .. spriteSheetManager.currentFrameIndex,
 		'quad viewport: ' .. x .. ', ' .. y .. ', ' .. w .. ', ' .. h,
-		'zoom level: ' .. zoomManager.zoom
+		'zoom level: ' .. viewportManager.zoom
 	}
 	for i, item in ipairs(items) do
 		love.graphics.print(item, 10, 10 + i * 20)
@@ -154,7 +154,7 @@ function love.draw()
 
 	-- debug
 	love.graphics.setColor(colors.froly)
-	local x, y, w, h = zoomManager.currentFrameQuad:getViewport()
+	local x, y, w, h = viewportManager.currentFrameQuad:getViewport()
 	love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
 	
 	love.graphics.setCanvas()
@@ -168,7 +168,7 @@ function love.keypressed(key, scancode, isrepeat)
 	if keys.isAnyOf(key, {keys.left, keys.right}) then
 		spriteSheetManager:changeActiveFrame(key == keys.right and 'next' or 'previous')
 		local newFrameQuad = spriteSheetManager:getQuadForCurrentFrameIndex()
-		zoomManager:refreshQuads(newFrameQuad:getViewport())
+		viewportManager:refreshQuads(newFrameQuad:getViewport())
 	end
 
 	-- debug stuff
@@ -192,16 +192,27 @@ function love.keypressed(key, scancode, isrepeat)
 end
 
 function love.mousepressed(x, y, button, istouch, presses)
-	if button == 1 then
+	if button == 1 then -- left click
 		color = {
 			love.math.random(),
 			love.math.random(),
 			love.math.random(),
 		}
+	elseif button == 2 then -- right click
+		local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
+		viewportManager.dragging = true
+		viewportManager.draggingStartX = x
+		viewportManager.draggingStartY = y
+	end
+end
+
+function love.mousereleased(x, y, button, istouch, presses)
+	if button == 2 then -- right click
+		viewportManager.dragging = false
 	end
 end
 
 function love.wheelmoved(x, y)
-	zoomManager:wheelMoved(y)
-	-- zoomManager:refreshQuads(spriteSheetManager:getQuadPosition())
+	viewportManager:wheelMoved(y)
+	-- viewportManager:refreshQuads(spriteSheetManager:getQuadPosition())
 end
