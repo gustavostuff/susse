@@ -9,8 +9,8 @@ zoom = 4
 
 local function initWorkspaceData()
 	animation = {
-		frameCount = 3,
-		frameWidth = 24,
+		frameCount = 9,
+		frameWidth = 12,
 		frameHeight = 16,
 	}
 
@@ -37,6 +37,7 @@ local function initCanvases()
 	}
 	offScreenArea.x = 50
 	offScreenArea.y = 50
+	offScreenArea.canvas:setWrap('clampzero', 'clampzero')
 
 	activeArea = {
 		canvas = love.graphics.newCanvas(animation.frameWidth, animation.frameHeight)
@@ -88,6 +89,8 @@ local function drawCursor()
 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
 	love.graphics.setColor(colors.flameOrange)
 	love.graphics.rectangle('line', x - zoom, y - zoom, zoom + 1, zoom + 1)
+
+
 end
 
 local function drawAppCanvas()
@@ -111,10 +114,20 @@ local function getScissorRect()
 	return {x = x, y = y, w = w, h = h}
 end
 
-local function renderToOffscreenCanvas(originX, originY)
+local function renderToOffscreenCanvas()
 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
-	local px = math.floor((x - originX) / zoom)
-	local py = math.floor((y - originY) / zoom)
+	local aaW = activeArea.canvas:getWidth() * zoom
+	local aaH = activeArea.canvas:getHeight() * zoom
+
+	-- if x < activeArea.x or x > (activeArea.x + aaW) then
+	-- 	return
+	-- end
+  -- if y < activeArea.y or y > (activeArea.y + aaH) then
+	-- 	return
+	-- end
+
+	local px = math.floor((x - activeArea.x) / zoom)
+	local py = math.floor((y - activeArea.y) / zoom)
 	
 	local blendModeBkp = love.graphics.getBlendMode()
 	love.graphics.setBlendMode('replace')
@@ -125,28 +138,21 @@ local function renderToOffscreenCanvas(originX, originY)
 	end
 
 	local rect = getScissorRect()
-	-- love.graphics.setScissor(rect.x, rect.y, rect.w, rect.h)
-	-- love.graphics.circle('fill', math.floor(px), math.floor(py), 2)
+	love.graphics.setScissor(rect.x, rect.y, rect.w, rect.h)
 	local x, y, _, _ = currentFrameQuad:getViewport()
-	love.graphics.points(
+	love.graphics.circle('fill',
 		math.floor(px + x),
-		math.floor(py + y)
+		math.floor(py + y), 4
 	)
-	-- love.graphics.setScissor()
+	love.graphics.setScissor()
 
 	love.graphics.setBlendMode(blendModeBkp)
 end
 
 local function drawActiveArea()
-	love.graphics.setColor(colors.froly)
-	local x, y, w, h = currentFrameQuad:getViewport()
-	love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
 	offScreenArea.canvas:renderTo(function()
 		if love.mouse.isDown(1) then
-			renderToOffscreenCanvas(
-				activeArea.x,
-				activeArea.y
-			)
+			renderToOffscreenCanvas()
 		end
 	end)
 
@@ -178,6 +184,11 @@ function love.draw()
 	drawCanvasesBgs()
 	drawActiveArea()
 	drawAppCanvas()
+
+	-- debug
+	love.graphics.setColor(colors.froly)
+	local x, y, w, h = currentFrameQuad:getViewport()
+	love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
 	
 	love.graphics.setCanvas()
 	love.graphics.setColor(colors.white)
