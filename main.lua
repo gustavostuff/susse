@@ -3,7 +3,13 @@
 -- Auto anti-aliasing, mix 2 colors and get the most similar color from the palette
 -- stroke-replicator copy a stroke in all the frame, with ot w/o offset
 -- stroke-eraser erase a stroke in all the frame, with ot w/o offset
--- show "shadow" of previous frame, to help drawing the next one (with a toggle between current and prev.)
+-- add support for layers
+-- add support for onion skin (maybe)
+-- add support for animation preview (play button)
+-- beizer curves over a timeline to determine the speed of the animation (per frame)
+-- add support for animation export (gif, png, etc)
+-- add urutora support
+-- create a *.sus file format to save the animation data 
 
 local globals = require 'globals'
 local keys = require 'keys'
