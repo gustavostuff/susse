@@ -1,3 +1,8 @@
+local globals = require 'globals'
+local utils = require 'utils'
+local keys = require 'keys'
+local colors = require 'colors'
+
 local spriteSheetManager = {}
 
 function spriteSheetManager:init(data)
@@ -40,6 +45,32 @@ function spriteSheetManager:getQuadForCurrentFrameIndex()
   local w, h = self.animation.frameWidth, self.animation.frameHeight
 
   return love.graphics.newQuad(x, y, w, h, self.spriteSheetWidth, self.spriteSheetHeight)
+end
+
+function spriteSheetManager:renderToOffscreenCanvas(activeAreaX, activeAreaY, zoom, quad)
+	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
+	local aaW = self.animation.frameWidth * zoom
+	local aaH = self.animation.frameWidth * zoom
+
+	local px = math.floor((x - activeAreaX) / zoom)
+	local py = math.floor((y - activeAreaY) / zoom)
+	
+	local blendModeBkp = love.graphics.getBlendMode()
+	love.graphics.setBlendMode('replace')
+	if keys.shiftDown() then
+		love.graphics.setColor(colors.transparent)
+	else
+		love.graphics.setColor(color)
+	end
+
+	love.graphics.setScissor(unpack(quad))
+	love.graphics.rectangle('fill',
+		math.floor(px + quad[1]),
+		math.floor(py + quad[2]), 1, 1
+	)
+	love.graphics.setScissor()
+
+	love.graphics.setBlendMode(blendModeBkp)
 end
 
 return spriteSheetManager
