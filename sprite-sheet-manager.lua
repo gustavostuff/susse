@@ -22,8 +22,8 @@ function spriteSheetManager:changeActiveFrame(direction)
   end
 end
 
-function spriteSheetManager:getQuadForCurrentFrameIndex()
-  local x, y, w, h = 0, 0, self.animation.frameWidth, self.animation.frameHeight
+function spriteSheetManager:getQuadPosition()
+  local x, y = 0, 0
   for i = 2, self.currentFrameIndex do
     x = x + self.animation.frameWidth
     if x >= self.spriteSheetWidth then
@@ -31,6 +31,13 @@ function spriteSheetManager:getQuadForCurrentFrameIndex()
       y = y + self.animation.frameHeight
     end
   end
+
+  return x, y
+end
+
+function spriteSheetManager:getQuadForCurrentFrameIndex()
+  local x, y = self:getQuadPosition()
+  local w, h = self.animation.frameWidth, self.animation.frameHeight
 
   return love.graphics.newQuad(x, y, w, h, self.spriteSheetWidth, self.spriteSheetHeight)
 end

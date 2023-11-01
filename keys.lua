@@ -1,6 +1,7 @@
 local keys = {
   escape = 'escape',
   c = 'c',
+  e = 'e',
   left = 'left',
   right = 'right',
 

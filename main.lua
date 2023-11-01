@@ -1,11 +1,10 @@
-local globals = require("globals")
-local keys = require("keys")
-local utils = require("utils")
-local colors = require("colors")
-local textures = require("textures")
-local spriteSheetManager = require("sprite-sheet-manager")
-
-zoom = 4
+local globals = require 'globals'
+local keys = require 'keys'
+local utils = require 'utils'
+local colors = require 'colors'
+local textures = require 'textures'
+local spriteSheetManager = require 'sprite-sheet-manager'
+local zoomManager = require 'zoom-manager'
 
 local function initWorkspaceData()
 	animation = {
@@ -35,7 +34,7 @@ local function initCanvases()
 	offScreenArea = {
 		canvas = love.graphics.newCanvas(spriteSheetWidth, spriteSheetHeight)
 	}
-	offScreenArea.x = 50
+	offScreenArea.x = 10
 	offScreenArea.y = 50
 	offScreenArea.canvas:setWrap('clampzero', 'clampzero')
 
@@ -45,24 +44,12 @@ local function initCanvases()
 	activeArea.x = 150
 	activeArea.y = 20
 	activeArea.canvas:setFilter('nearest', 'nearest')
-
-	currentFrameQuad = love.graphics.newQuad(0, 0,
-		animation.frameWidth,
-		animation.frameHeight,
-		offScreenArea.canvas:getDimensions()
-	)
 end
 
 local function initTextures()
 	textures.offScreenQuad = love.graphics.newQuad(0, 0,
 		offScreenArea.canvas:getWidth(),
 		offScreenArea.canvas:getHeight(),
-		textures.chessPattern:getDimensions()
-	)
-
-	textures.activeQuad = love.graphics.newQuad(0, 0,
-		activeArea.canvas:getWidth() * zoom,
-		activeArea.canvas:getHeight() * zoom,
 		textures.chessPattern:getDimensions()
 	)
 end
@@ -79,6 +66,12 @@ function love.load()
 	initCanvases()
 	initTextures()
 	initCursors()
+	zoomManager:init({
+		activeArea = activeArea,
+		offScreenArea = offScreenArea,
+		currentFrameQuad = currentFrameQuad,
+		animation = animation
+	})
 end
 
 function love.update(dt)
@@ -88,15 +81,18 @@ end
 local function drawCursor()
 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
 	love.graphics.setColor(colors.flameOrange)
-	love.graphics.rectangle('line', x - zoom, y - zoom, zoom + 1, zoom + 1)
-
-
+	love.graphics.rectangle('line',
+		x - zoomManager.zoom,
+		y - zoomManager.zoom,
+		zoomManager.zoom + 1,
+		zoomManager.zoom + 1
+	)
 end
 
 local function drawAppCanvas()
 	love.graphics.setColor(colors.white)
 	love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
-	love.graphics.draw(activeArea.canvas, activeArea.x, activeArea.y, 0, zoom, zoom)
+	zoomManager:draw()
 
 	drawCursor()
 end
@@ -105,29 +101,22 @@ local function drawCanvasesBgs()
 	love.graphics.clear(colors.transparent)
 	love.graphics.setColor(colors.white)
 
-	love.graphics.draw(textures.chessPattern, textures.activeQuad, activeArea.x, activeArea.y)
+	love.graphics.draw(textures.chessPattern, zoomManager.activeQuad, activeArea.x, activeArea.y)
 	love.graphics.draw(textures.chessPattern, textures.offScreenQuad, offScreenArea.x, offScreenArea.y)
 end
 
 local function getScissorRect()
-	local x, y, w, h = currentFrameQuad:getViewport()
+	local x, y, w, h = zoomManager.currentFrameQuad:getViewport()
 	return {x = x, y = y, w = w, h = h}
 end
 
 local function renderToOffscreenCanvas()
 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
-	local aaW = activeArea.canvas:getWidth() * zoom
-	local aaH = activeArea.canvas:getHeight() * zoom
+	local aaW = activeArea.canvas:getWidth() * zoomManager.zoom
+	local aaH = activeArea.canvas:getHeight() * zoomManager.zoom
 
-	-- if x < activeArea.x or x > (activeArea.x + aaW) then
-	-- 	return
-	-- end
-  -- if y < activeArea.y or y > (activeArea.y + aaH) then
-	-- 	return
-	-- end
-
-	local px = math.floor((x - activeArea.x) / zoom)
-	local py = math.floor((y - activeArea.y) / zoom)
+	local px = math.floor((x - activeArea.x) / zoomManager.zoom)
+	local py = math.floor((y - activeArea.y) / zoomManager.zoom)
 	
 	local blendModeBkp = love.graphics.getBlendMode()
 	love.graphics.setBlendMode('replace')
@@ -139,7 +128,7 @@ local function renderToOffscreenCanvas()
 
 	local rect = getScissorRect()
 	love.graphics.setScissor(rect.x, rect.y, rect.w, rect.h)
-	local x, y, _, _ = currentFrameQuad:getViewport()
+	local x, y, _, _ = zoomManager.currentFrameQuad:getViewport()
 	love.graphics.circle('fill',
 		math.floor(px + x),
 		math.floor(py + y), 4
@@ -155,16 +144,10 @@ local function drawActiveArea()
 			renderToOffscreenCanvas()
 		end
 	end)
-
-	activeArea.canvas:renderTo(function()
-		love.graphics.clear(colors.transparent)
-		love.graphics.setColor(colors.white)
-		love.graphics.draw(offScreenArea.canvas, currentFrameQuad, 0, 0)
-	end)
 end
 
 local function drawDebugInfo()
-	local x, y, w, h = currentFrameQuad:getViewport()
+	local x, y, w, h = zoomManager.currentFrameQuad:getViewport()
 	local items = {
 		'FPS: ' .. love.timer.getFPS(),
 		'off-screen area W: ' .. offScreenArea.canvas:getWidth(),
@@ -187,7 +170,7 @@ function love.draw()
 
 	-- debug
 	love.graphics.setColor(colors.froly)
-	local x, y, w, h = currentFrameQuad:getViewport()
+	local x, y, w, h = zoomManager.currentFrameQuad:getViewport()
 	love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
 	
 	love.graphics.setCanvas()
@@ -201,12 +184,17 @@ function love.keypressed(key, scancode, isrepeat)
 	if keys.isAnyOf(key, {keys.left, keys.right}) then
 		spriteSheetManager:changeActiveFrame(key == keys.right and 'next' or 'previous')
 		local newFrameQuad = spriteSheetManager:getQuadForCurrentFrameIndex()
-		currentFrameQuad:setViewport(newFrameQuad:getViewport())
+		zoomManager:refreshQuads(newFrameQuad:getViewport())
 	end
 
 	-- debug stuff
 	if key == keys.escape then
 		love.event.quit()
+	end
+
+	if key == keys.e then
+		local imageData = offScreenArea.canvas:newImageData()
+		imageData:encode('png', 'test_sprite_sheet.png')
 	end
 
 	if key == keys.c then
@@ -227,4 +215,9 @@ function love.mousepressed(x, y, button, istouch, presses)
 			love.math.random(),
 		}
 	end
+end
+
+function love.wheelmoved(x, y)
+	zoomManager:wheelMoved(y)
+	zoomManager:refreshQuads(spriteSheetManager:getQuadPosition())
 end
