@@ -1,9 +1,16 @@
+local globals = require 'globals'
+
 local utils = {}
 
 function utils:getScaledMouse(canvasW, canvasH)
   local x, y = love.mouse.getPosition()
-  local scale = canvasW / love.graphics.getWidth()
+  local scale = canvasH / love.graphics.getHeight()
   return math.floor(x * scale), math.floor(y * scale)
+end
+
+function utils:getScaledDxDy(dx, dy)
+  local scale = globals.appHeight / love.graphics.getHeight()
+  return math.floor(dx * scale), math.floor(dy * scale)
 end
 
 function utils:calculateSpriteSheetSize(numFrames, frameWidth, frameHeight)

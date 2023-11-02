@@ -11,6 +11,13 @@
 -- add urutora UI
 -- create a file format to save the animation data
 -- add support for ultra wide screens
+-- support to paste images from a file or clipboard
+-- compare to Gimp (like starting a line from the last click)
+
+local katsudo = require 'lib.katsudo.katsudo'
+local urutora = require 'lib.urutora'
+u = urutora:new()
+u.katsudo = katsudo
 
 local globals = require 'globals'
 local keys = require 'keys'
@@ -24,7 +31,7 @@ local function initWorkspaceData()
   animation = {
     frameCount = 8,
     frameWidth = 24,
-    frameHeight = 16,
+    frameHeight = 24,
   }
 
   spriteSheetWidth, spriteSheetHeight = utils:calculateSpriteSheetSize(
@@ -58,6 +65,8 @@ local function initCanvases()
   activeArea.x = 150
   activeArea.y = 40
   activeArea.canvas:setFilter('nearest', 'nearest')
+
+  spriteSheetManager.activeArea = activeArea
 end
 
 local function initTextures()
@@ -105,8 +114,8 @@ end
 
 local function drawAppCanvas()
   love.graphics.setColor(colors.white)
-  love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
   viewportManager:draw()
+  love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
 
   -- drawCursor()
 end
@@ -126,16 +135,7 @@ local function drawCanvasesBgs()
 end
 
 local function drawActiveArea()
-  offScreenArea.canvas:renderTo(function()
-  	if love.mouse.isDown(1) then
-  		spriteSheetManager:renderToOffscreenCanvas(
-  			activeArea.x,
-  			activeArea.y,
-  			viewportManager.zoom,
-  			{viewportManager.currentFrameQuad:getViewport()}
-  		)
-  	end
-  end)
+  
 end
 
 local function drawDebugInfo()
@@ -163,8 +163,8 @@ function love.draw()
   love.graphics.setCanvas(appCanvas)
 
   drawCanvasesBgs()
-  drawActiveArea()
   drawAppCanvas()
+  drawActiveArea()
 
   -- debug
   love.graphics.setColor(colors.froly)
@@ -196,22 +196,35 @@ function love.keypressed(key, scancode, isrepeat)
   -- end
 
   if key == keys.c then
-    activeArea.canvas:renderTo(function()
-      love.graphics.clear(colors.transparent)
-    end)
     offScreenArea.canvas:renderTo(function()
       love.graphics.clear(colors.transparent)
     end)
   end
 end
 
+local function paint(strokeType, dx, dy)
+  if strokeType == 'press' then
+    offScreenArea.canvas:renderTo(function()
+      spriteSheetManager:renderMousePressedStroke(
+        viewportManager.zoom,
+        {viewportManager.currentFrameQuad:getViewport()}
+      )
+    end)
+  elseif strokeType == 'move' then
+    offScreenArea.canvas:renderTo(function()
+      spriteSheetManager:renderMouseMovedStroke(
+        viewportManager.zoom,
+        {viewportManager.currentFrameQuad:getViewport()},
+        dx,
+        dy
+      )
+    end)
+  end
+end
+
 function love.mousepressed(x, y, button, istouch, presses)
   if button == 1 then -- left click
-    color = {
-      love.math.random(),
-      love.math.random(),
-      love.math.random(),
-    }
+    paint('press')
   elseif button == 2 then -- right click
     local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
     viewportManager.dragging = true
@@ -220,9 +233,18 @@ function love.mousepressed(x, y, button, istouch, presses)
   end
 end
 
+function love.mousemoved(x, y, dx, dy, istouch)
+  if love.mouse.isDown(1) then
+    dx, dy = utils:getScaledDxDy(dx, dy)
+    paint('move', dx, dy)
+  end
+end
+
 function love.mousereleased(x, y, button, istouch, presses)
   if button == 2 then -- right click
     viewportManager.dragging = false
+  elseif button == 1 then -- left click
+    spriteSheetManager:clearPencilStrokePoints()
   end
 end
 

@@ -41,4 +41,12 @@ function colors:translucent(key, opacity)
   return {c[1], c[2], c[3], opacity}
 end
 
+function colors:getRandomColor()
+  return {
+    love.math.random(),
+    love.math.random(),
+    love.math.random(),
+  }
+end
+
 return colors

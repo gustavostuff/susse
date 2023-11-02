@@ -3,13 +3,16 @@ local utils = require 'utils'
 local keys = require 'keys'
 local colors = require 'colors'
 
-local spriteSheetManager = {}
+local spriteSheetManager = {
+  pencilStrokePoints = {}
+}
 
 function spriteSheetManager:init(data)
   data = data or {}
   self.animation = data.animation
   self.spriteSheetWidth = data.spriteSheetWidth
   self.spriteSheetHeight = data.spriteSheetHeight
+  self.activeArea = data.activeArea
   self.currentFrameIndex = 1
 end
 
@@ -47,30 +50,66 @@ function spriteSheetManager:getQuadForCurrentFrameIndex()
   return love.graphics.newQuad(x, y, w, h, self.spriteSheetWidth, self.spriteSheetHeight)
 end
 
-function spriteSheetManager:renderToOffscreenCanvas(activeAreaX, activeAreaY, zoom, quad)
-	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
-	local aaW = self.animation.frameWidth * zoom
-	local aaH = self.animation.frameWidth * zoom
+function spriteSheetManager:getStrokeCoords(zoom)
+  local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
+	local strokeX = math.floor((x - self.activeArea.x) / zoom)
+	local strokeY = math.floor((y - self.activeArea.y) / zoom)
 
-	local px = math.floor((x - activeAreaX) / zoom)
-	local py = math.floor((y - activeAreaY) / zoom)
-	
+  return strokeX, strokeY
+end
+
+function spriteSheetManager:renderMousePressedStroke(zoom, quad)
+	local strokeX, strokeY = self:getStrokeCoords(zoom)
+
 	local blendModeBkp = love.graphics.getBlendMode()
 	love.graphics.setBlendMode('replace')
 	if keys.shiftDown() then
 		love.graphics.setColor(colors.transparent)
 	else
-		love.graphics.setColor(color)
+		love.graphics.setColor(colors.blizzardBlue)
 	end
 
 	love.graphics.setScissor(unpack(quad))
-	love.graphics.circle('fill',
-		math.floor(px + quad[1]),
-		math.floor(py + quad[2]), 3
-	)
+  local x = math.floor(strokeX + quad[1])
+  local y = math.floor(strokeY + quad[2])
+	love.graphics.rectangle('fill', x, y, 1, 1)
 	love.graphics.setScissor()
 
 	love.graphics.setBlendMode(blendModeBkp)
+end
+
+function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
+  local strokeX, strokeY = self:getStrokeCoords(zoom)
+
+  local blendModeBkp = love.graphics.getBlendMode()
+  love.graphics.setBlendMode('replace')
+  if keys.shiftDown() then
+    love.graphics.setColor(colors.transparent)
+  else
+    love.graphics.setColor(colors.blizzardBlue)
+  end
+
+  love.graphics.setScissor(unpack(quad))
+
+  local x = math.floor(strokeX + quad[1])
+  local y = math.floor(strokeY + quad[2])
+  if #self.pencilStrokePoints > 0 then
+    local prevStroke = self.pencilStrokePoints[#self.pencilStrokePoints]
+    local prevX = math.floor(prevStroke.x + quad[1])
+    local prevY = math.floor(prevStroke.y + quad[2])
+    love.graphics.line(prevX + 1, prevY + 1, x, y)
+  else
+    love.graphics.rectangle('fill', x, y, 1, 1)
+  end
+  table.insert(self.pencilStrokePoints, {x = x, y = y})
+
+  love.graphics.setScissor()
+
+  love.graphics.setBlendMode(blendModeBkp)
+end
+
+function spriteSheetManager:clearPencilStrokePoints()
+  self.pencilStrokePoints = {}
 end
 
 return spriteSheetManager
