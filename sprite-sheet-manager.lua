@@ -58,16 +58,21 @@ function spriteSheetManager:getStrokeCoords(zoom)
   return strokeX, strokeY
 end
 
+function spriteSheetManager:getStrokeColor()
+  if keys.shiftDown() then
+    return colors.transparent
+  else
+    -- return colors:getRandomColor()
+    return colors.fernGreen
+  end
+end
+
 function spriteSheetManager:renderMousePressedStroke(zoom, quad)
 	local strokeX, strokeY = self:getStrokeCoords(zoom)
 
 	local blendModeBkp = love.graphics.getBlendMode()
 	love.graphics.setBlendMode('replace')
-	if keys.shiftDown() then
-		love.graphics.setColor(colors.transparent)
-	else
-		love.graphics.setColor(colors.blizzardBlue)
-	end
+	love.graphics.setColor(self:getStrokeColor())
 
 	love.graphics.setScissor(unpack(quad))
   local x = math.floor(strokeX + quad[1])
@@ -83,11 +88,7 @@ function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
 
   local blendModeBkp = love.graphics.getBlendMode()
   love.graphics.setBlendMode('replace')
-  if keys.shiftDown() then
-    love.graphics.setColor(colors.transparent)
-  else
-    love.graphics.setColor(colors.blizzardBlue)
-  end
+  love.graphics.setColor(self:getStrokeColor())
 
   love.graphics.setScissor(unpack(quad))
 
@@ -95,8 +96,8 @@ function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
   local y = math.floor(strokeY + quad[2])
   if #self.pencilStrokePoints > 0 then
     local prevStroke = self.pencilStrokePoints[#self.pencilStrokePoints]
-    local prevX = math.floor(prevStroke.x + quad[1])
-    local prevY = math.floor(prevStroke.y + quad[2])
+    local prevX = math.floor(prevStroke.x)
+    local prevY = math.floor(prevStroke.y)
     love.graphics.line(prevX + 1, prevY + 1, x, y)
   else
     love.graphics.rectangle('fill', x, y, 1, 1)

@@ -3,7 +3,7 @@ local textures = require 'textures'
 local globals = require 'globals'
 local utils = require 'utils'
 local viewportManager = {
-  minZoom = 1,
+  minZoom = 2,
   maxZoom = 16,
   draggingStartX = 0,
   draggingStartY = 0
@@ -11,7 +11,7 @@ local viewportManager = {
 
 function viewportManager:init(data)
   data = data or {}
-  self.zoom = 4
+  self.zoom = self.minZoom
 
   self.activeArea = data.activeArea
   self.offScreenArea = data.offScreenArea
@@ -20,7 +20,7 @@ function viewportManager:init(data)
   self.activeQuad = love.graphics.newQuad(0, 0,
 		globals.appWidth,
     globals.appHeight,
-		textures.chessPattern:getDimensions()
+		textures.bgTexture:getDimensions()
 	)
   self:refreshQuads(0, 0)
 end
@@ -47,7 +47,7 @@ function viewportManager:refreshQuads(x, y)
 	)
 end
 
-function viewportManager:draw()
+function viewportManager:renderActiveArea()
   self.activeArea.canvas:renderTo(function()
 		love.graphics.clear(colors.transparent)
 		love.graphics.setColor(colors.white)
@@ -62,6 +62,47 @@ function viewportManager:draw()
     self.zoom,
     self.zoom
   )
+end
+
+function viewportManager:renderGrid(canvas)
+  local aa = self.activeArea
+  local anim = self.animation
+
+  canvas:renderTo(function()
+    love.graphics.clear()
+    love.graphics.setColor(colors.periwinkle)
+    love.graphics.line(
+      aa.x,
+      aa.y - 1,
+      aa.x,
+      aa.y + anim.frameHeight * self.zoom
+    )
+    for x = 1, anim.frameWidth do
+      love.graphics.line(
+        aa.x + x * self.zoom,
+        aa.y,
+        aa.x + x * self.zoom,
+        aa.y + anim.frameHeight * self.zoom
+      )
+    end
+    love.graphics.line(
+      aa.x - 1,
+      aa.y,
+      aa.x + anim.frameWidth * self.zoom,
+      aa.y
+    )
+    for y = 1, anim.frameHeight do
+      love.graphics.line(
+        aa.x,
+        aa.y + y * self.zoom,
+        aa.x + anim.frameWidth * self.zoom,
+        aa.y + y * self.zoom
+      )
+    end
+  end)
+
+  love.graphics.setColor(colors.white)
+  love.graphics.draw(canvas, 0, 0)
 end
 
 function viewportManager:wheelMoved(wheelY)

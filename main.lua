@@ -29,9 +29,9 @@ local viewportManager = require 'viewport-manager'
 
 local function initWorkspaceData()
   animation = {
-    frameCount = 8,
-    frameWidth = 24,
-    frameHeight = 24,
+    frameCount = 3,
+    frameWidth = 48,
+    frameHeight = 32,
   }
 
   spriteSheetWidth, spriteSheetHeight = utils:calculateSpriteSheetSize(
@@ -56,7 +56,7 @@ local function initCanvases()
     canvas = love.graphics.newCanvas(spriteSheetWidth, spriteSheetHeight)
   }
   offScreenArea.x = 10
-  offScreenArea.y = 50
+  offScreenArea.y = 70
   offScreenArea.canvas:setWrap('clampzero', 'clampzero')
 
   activeArea = {
@@ -66,24 +66,28 @@ local function initCanvases()
   activeArea.y = 40
   activeArea.canvas:setFilter('nearest', 'nearest')
 
+  gridCanvas = love.graphics.newCanvas(globals.appWidth, globals.appHeight)
+
   spriteSheetManager.activeArea = activeArea
 end
 
 local function initTextures()
+  textures.bgTexture = textures.whiteBg
   textures.offScreenQuad = love.graphics.newQuad(0, 0,
     offScreenArea.canvas:getWidth(),
     offScreenArea.canvas:getHeight(),
-    textures.chessPattern:getDimensions()
+    textures.bgTexture:getDimensions()
   )
 end
 
 local function initCursors()
-  emptyCursor = love.mouse.newCursor("images/empty.png", 0, 0)
+emptyCursor = love.mouse.newCursor("images/empty.png", 0, 0)
   -- love.mouse.setCursor(emptyCursor)
 end
 
 function love.load()
   love.graphics.setLineStyle('rough')
+  love.graphics.setLineJoin('bevel')
   love.graphics.setLineWidth(1)
   initWorkspaceData()
   initCanvases()
@@ -101,22 +105,11 @@ function love.update(dt)
   viewportManager:update(dt)
 end
 
--- local function drawCursor()
--- 	local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
--- 	love.graphics.setColor(colors.flameOrange)
--- 	love.graphics.rectangle('line',
--- 		x - viewportManager.zoom,
--- 		y - viewportManager.zoom,
--- 		viewportManager.zoom + 1,
--- 		viewportManager.zoom + 1
--- 	)
--- end
-
 local function drawAppCanvas()
   love.graphics.setColor(colors.white)
-  viewportManager:draw()
+  viewportManager:renderActiveArea()
+  -- viewportManager:renderGrid(gridCanvas)
   love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
-
   -- drawCursor()
 end
 
@@ -130,7 +123,7 @@ local function drawCanvasesBgs()
     activeArea.canvas:getWidth() * viewportManager.zoom,
     activeArea.canvas:getHeight() * viewportManager.zoom
   )
-  love.graphics.draw(textures.chessPattern, viewportManager.activeQuad, 0, 0)
+  love.graphics.draw(textures.bgTexture, viewportManager.activeQuad, 0, 0)
   love.graphics.setScissor()
 end
 
@@ -225,7 +218,7 @@ end
 function love.mousepressed(x, y, button, istouch, presses)
   if button == 1 then -- left click
     paint('press')
-  elseif button == 2 then -- right click
+  elseif button == 2 or button == 3 then -- right/middle click
     local x, y = utils:getScaledMouse(globals.appWidth, globals.appHeight)
     viewportManager.dragging = true
     viewportManager.draggingStartX = x
@@ -241,7 +234,7 @@ function love.mousemoved(x, y, dx, dy, istouch)
 end
 
 function love.mousereleased(x, y, button, istouch, presses)
-  if button == 2 then -- right click
+  if button == 2 or button == 3 then -- right/middle click
     viewportManager.dragging = false
   elseif button == 1 then -- left click
     spriteSheetManager:clearPencilStrokePoints()
