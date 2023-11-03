@@ -65,44 +65,44 @@ function viewportManager:renderActiveArea()
 end
 
 function viewportManager:renderGrid(canvas)
-  local aa = self.activeArea
-  local anim = self.animation
+  -- local aa = self.activeArea
+  -- local anim = self.animation
 
-  canvas:renderTo(function()
-    love.graphics.clear()
-    love.graphics.setColor(colors.periwinkle)
-    love.graphics.line(
-      aa.x,
-      aa.y - 1,
-      aa.x,
-      aa.y + anim.frameHeight * self.zoom
-    )
-    for x = 1, anim.frameWidth do
-      love.graphics.line(
-        aa.x + x * self.zoom,
-        aa.y,
-        aa.x + x * self.zoom,
-        aa.y + anim.frameHeight * self.zoom
-      )
-    end
-    love.graphics.line(
-      aa.x - 1,
-      aa.y,
-      aa.x + anim.frameWidth * self.zoom,
-      aa.y
-    )
-    for y = 1, anim.frameHeight do
-      love.graphics.line(
-        aa.x,
-        aa.y + y * self.zoom,
-        aa.x + anim.frameWidth * self.zoom,
-        aa.y + y * self.zoom
-      )
-    end
-  end)
+  -- canvas:renderTo(function()
+  --   love.graphics.clear()
+  --   love.graphics.setColor(colors.periwinkle)
+  --   love.graphics.line(
+  --     aa.x,
+  --     aa.y - 1,
+  --     aa.x,
+  --     aa.y + anim.frameHeight * self.zoom
+  --   )
+  --   for x = 1, anim.frameWidth do
+  --     love.graphics.line(
+  --       aa.x + x * self.zoom,
+  --       aa.y,
+  --       aa.x + x * self.zoom,
+  --       aa.y + anim.frameHeight * self.zoom
+  --     )
+  --   end
+  --   love.graphics.line(
+  --     aa.x - 1,
+  --     aa.y,
+  --     aa.x + anim.frameWidth * self.zoom,
+  --     aa.y
+  --   )
+  --   for y = 1, anim.frameHeight do
+  --     love.graphics.line(
+  --       aa.x,
+  --       aa.y + y * self.zoom,
+  --       aa.x + anim.frameWidth * self.zoom,
+  --       aa.y + y * self.zoom
+  --     )
+  --   end
+  -- end)
 
-  love.graphics.setColor(colors.white)
-  love.graphics.draw(canvas, 0, 0)
+  -- love.graphics.setColor(colors.white)
+  -- love.graphics.draw(canvas, 0, 0)
 end
 
 function viewportManager:wheelMoved(wheelY)

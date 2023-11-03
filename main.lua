@@ -11,6 +11,7 @@
 -- add urutora UI
 -- create a file format to save the animation data
 -- add support for ultra wide screens
+-- add dynamic stroke, fade to dark or light
 -- support to paste images from a file or clipboard
 -- compare to Gimp (like starting a line from the last click)
 
@@ -72,7 +73,7 @@ local function initCanvases()
 end
 
 local function initTextures()
-  textures.bgTexture = textures.whiteBg
+  textures.bgTexture = textures.chessPattern
   textures.offScreenQuad = love.graphics.newQuad(0, 0,
     offScreenArea.canvas:getWidth(),
     offScreenArea.canvas:getHeight(),
@@ -108,7 +109,7 @@ end
 local function drawAppCanvas()
   love.graphics.setColor(colors.white)
   viewportManager:renderActiveArea()
-  -- viewportManager:renderGrid(gridCanvas)
+  viewportManager:renderGrid(gridCanvas)
   love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
   -- drawCursor()
 end

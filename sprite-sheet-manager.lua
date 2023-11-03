@@ -62,8 +62,8 @@ function spriteSheetManager:getStrokeColor()
   if keys.shiftDown() then
     return colors.transparent
   else
-    -- return colors:getRandomColor()
-    return colors.fernGreen
+    return colors:getRandomColor()
+    -- return colors.fernGreen
   end
 end
 
@@ -98,7 +98,12 @@ function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
     local prevStroke = self.pencilStrokePoints[#self.pencilStrokePoints]
     local prevX = math.floor(prevStroke.x)
     local prevY = math.floor(prevStroke.y)
-    love.graphics.line(prevX + 1, prevY + 1, x, y)
+    print('stroke:', prevX, prevY, x, y)
+    love.graphics.line(prevX + 1, prevY + 1, x + 1, y + 1)
+    if prevX == x and prevY == y then
+      love.graphics.setColor(0, 0, 0, 0.5)
+      love.graphics.rectangle('fill', x, y, 1, 1)
+    end
   else
     love.graphics.rectangle('fill', x, y, 1, 1)
   end
