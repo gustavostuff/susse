@@ -31,8 +31,8 @@ local viewportManager = require 'viewport-manager'
 local function initWorkspaceData()
   animation = {
     frameCount = 3,
-    frameWidth = 48,
-    frameHeight = 32,
+    frameWidth = 64,
+    frameHeight = 64,
   }
 
   spriteSheetWidth, spriteSheetHeight = utils:calculateSpriteSheetSize(
@@ -104,13 +104,19 @@ end
 
 function love.update(dt)
   viewportManager:update(dt)
+  if love.mouse.isDown(1) then
+    spriteSheetManager:renderSprayStroke(
+      viewportManager.zoom,
+      {viewportManager.currentFrameQuad:getViewport()}
+    )
+  end
 end
 
 local function drawAppCanvas()
   love.graphics.setColor(colors.white)
   viewportManager:renderActiveArea()
   viewportManager:renderGrid(gridCanvas)
-  love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
+  -- love.graphics.draw(offScreenArea.canvas, offScreenArea.x, offScreenArea.y)
   -- drawCursor()
 end
 
@@ -161,9 +167,9 @@ function love.draw()
   drawActiveArea()
 
   -- debug
-  love.graphics.setColor(colors.froly)
-  local x, y, w, h = viewportManager.currentFrameQuad:getViewport()
-  love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
+  -- love.graphics.setColor(colors.froly)
+  -- local x, y, w, h = viewportManager.currentFrameQuad:getViewport()
+  -- love.graphics.rectangle('line', offScreenArea.x + x, offScreenArea.y + y, w + 1, h + 1)
   
   love.graphics.setCanvas()
   love.graphics.setColor(colors.white)

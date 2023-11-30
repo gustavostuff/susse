@@ -67,6 +67,34 @@ function spriteSheetManager:getStrokeColor()
   end
 end
 
+--------------------
+local spray = true
+--------------------
+
+function spriteSheetManager:renderSprayStroke(zoom, quad)
+  local strokeX, strokeY = self:getStrokeCoords(zoom)
+
+	local blendModeBkp = love.graphics.getBlendMode()
+	love.graphics.setBlendMode('replace')
+	love.graphics.setColor(self:getStrokeColor())
+
+	love.graphics.setScissor(unpack(quad))
+  local x = math.floor(strokeX + quad[1])
+  local y = math.floor(strokeY + quad[2])
+
+  for i = 1, 12 do
+    local angle = love.math.random() * 2 * math.pi
+    local radius = love.math.random() * 7
+    local dx = math.floor(radius * math.cos(angle))
+    local dy = math.floor(radius * math.sin(angle))
+
+    love.graphics.rectangle('fill', x + dx, y + dy, 1, 1)
+  end
+
+	love.graphics.setScissor()
+	love.graphics.setBlendMode(blendModeBkp)
+end
+
 function spriteSheetManager:renderMousePressedStroke(zoom, quad)
 	local strokeX, strokeY = self:getStrokeCoords(zoom)
 
@@ -78,8 +106,8 @@ function spriteSheetManager:renderMousePressedStroke(zoom, quad)
   local x = math.floor(strokeX + quad[1])
   local y = math.floor(strokeY + quad[2])
 	love.graphics.rectangle('fill', x, y, 1, 1)
-	love.graphics.setScissor()
 
+	love.graphics.setScissor()
 	love.graphics.setBlendMode(blendModeBkp)
 end
 
@@ -92,17 +120,17 @@ function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
 
   love.graphics.setScissor(unpack(quad))
 
-  local x = math.floor(strokeX + quad[1])
-  local y = math.floor(strokeY + quad[2])
+  local x = strokeX + quad[1]
+  local y = strokeY + quad[2]
   if #self.pencilStrokePoints > 0 then
     local prevStroke = self.pencilStrokePoints[#self.pencilStrokePoints]
-    local prevX = math.floor(prevStroke.x)
-    local prevY = math.floor(prevStroke.y)
+    local prevX = prevStroke.x
+    local prevY = prevStroke.y
     print('stroke:', prevX, prevY, x, y)
     love.graphics.line(prevX + 1, prevY + 1, x + 1, y + 1)
     if prevX == x and prevY == y then
-      love.graphics.setColor(0, 0, 0, 0.5)
-      love.graphics.rectangle('fill', x, y, 1, 1)
+      -- love.graphics.setColor(0, 0, 0, 0.5)
+      -- love.graphics.rectangle('fill', x, y, 1, 1)
     end
   else
     love.graphics.rectangle('fill', x, y, 1, 1)
