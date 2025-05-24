@@ -1,3 +1,5 @@
+## EDIT: Full refactor is in progress!
+
 ## Süsse (Super ültra sweet sprite editor) helps you to create low-resolution sprite sheets.
 
 [![License](http://img.shields.io/:license-MIT-blue.svg)](https://github.com/tavuntu/susse/blob/master/LICENSE.md)
