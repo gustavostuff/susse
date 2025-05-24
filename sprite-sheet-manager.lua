@@ -62,8 +62,8 @@ function spriteSheetManager:getStrokeColor()
   if keys.shiftDown() then
     return colors.transparent
   else
-    return colors:getRandomColor()
-    -- return colors.fernGreen
+    -- return colors:getRandomColor()
+    return colors.black
   end
 end
 
@@ -109,6 +109,8 @@ function spriteSheetManager:renderMousePressedStroke(zoom, quad)
 
 	love.graphics.setScissor()
 	love.graphics.setBlendMode(blendModeBkp)
+  self.lastPressedX = x
+  self.lastPressedY = y
 end
 
 function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
@@ -122,20 +124,26 @@ function spriteSheetManager:renderMouseMovedStroke(zoom, quad, dx, dy)
 
   local x = strokeX + quad[1]
   local y = strokeY + quad[2]
-  if #self.pencilStrokePoints > 0 then
-    local prevStroke = self.pencilStrokePoints[#self.pencilStrokePoints]
-    local prevX = prevStroke.x
-    local prevY = prevStroke.y
-    print('stroke:', prevX, prevY, x, y)
-    love.graphics.line(prevX + 1, prevY + 1, x + 1, y + 1)
-    if prevX == x and prevY == y then
-      -- love.graphics.setColor(0, 0, 0, 0.5)
-      -- love.graphics.rectangle('fill', x, y, 1, 1)
-    end
-  else
-    love.graphics.rectangle('fill', x, y, 1, 1)
+  -- if #self.pencilStrokePoints > 0 then
+  --   local prevStroke = self.pencilStrokePoints[#self.pencilStrokePoints]
+  --   local prevX = prevStroke.x
+  --   local prevY = prevStroke.y
+  --   -- print('stroke:', prevX, prevY, x, y)
+  --   love.graphics.line(prevX + 1, prevY + 1, x + 1, y + 1)
+  --   if prevX == x and prevY == y then
+  --     -- love.graphics.setColor(0, 0, 0, 0.5)
+  --     -- love.graphics.rectangle('fill', x, y, 1, 1)
+  --   end
+  -- else
+  --   love.graphics.rectangle('fill', x, y, 1, 1)
+  -- end
+  -- table.insert(self.pencilStrokePoints, {x = x, y = y})
+
+  if self.lastPressedX and self.lastPressedY then
+    love.graphics.line(self.lastPressedX + 1, self.lastPressedY + 1, x + 1, y + 1)
+    self.lastPressedX = x
+    self.lastPressedY = y
   end
-  table.insert(self.pencilStrokePoints, {x = x, y = y})
 
   love.graphics.setScissor()
 

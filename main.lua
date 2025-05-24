@@ -1,26 +1,33 @@
 -- Todos:
 
 -- Auto anti-aliasing, mix 2 colors and get the most similar color from the palette
--- stroke-replicator copy a stroke in all the frame, with or w/o offset
--- stroke-eraser erase a stroke in all the frame, with or w/o offset
+-- stroke-replicator copy a stroke in all the frames, with or w/o offset
+-- stroke-eraser erase a stroke in all the frames, with or w/o offset
 -- add support for layers
--- add support for onion skin (maybe)
+-- add support for onion skin
 -- add support for animation preview (play button)
 -- beizer curves over a timeline to determine the speed of the animation (per frame)
 -- add support for animation export (gif, png, etc)
 -- add urutora UI
 -- create a file format to save the animation data
 -- add support for ultra wide screens
--- add dynamic stroke, fade to dark or light
+-- add dynamic stroke, fade to dark or light, limited to the color palette
 -- support to paste images from a file or clipboard
--- compare to Gimp (like starting a line from the last click)
+-- make basic functions comparable to Gimp (like starting a line from the last click)
+
+
+
+-- Issues:
+
+-- Fix rendering when mouse moved
+
+local globals = require 'globals'
 
 local katsudo = require 'lib.katsudo.katsudo'
 local urutora = require 'lib.urutora'
 u = urutora:new()
 u.katsudo = katsudo
 
-local globals = require 'globals'
 local keys = require 'keys'
 local utils = require 'utils'
 local colors = require 'colors'
@@ -63,8 +70,12 @@ local function initCanvases()
   activeArea = {
     canvas = love.graphics.newCanvas(animation.frameWidth, animation.frameHeight)
   }
-  activeArea.x = 150
-  activeArea.y = 40
+
+  local aaX = globals.appWidth / 2 - animation.frameWidth * viewportManager.minZoom / 2
+  local aaY = globals.appHeight / 2 - animation.frameHeight * viewportManager.minZoom / 2
+
+  activeArea.x = math.floor(aaX)
+  activeArea.y = math.floor(aaY)
   activeArea.canvas:setFilter('nearest', 'nearest')
 
   gridCanvas = love.graphics.newCanvas(globals.appWidth, globals.appHeight)
@@ -154,7 +165,7 @@ local function drawDebugInfo()
     'zoom level: ' .. viewportManager.zoom
   }
   for i, item in ipairs(items) do
-    love.graphics.print(item, 10, 10 + i * 20)
+    love.graphics.print(item, 10, 10 + (i - 1) * 20)
   end
 end
 
@@ -199,6 +210,8 @@ function love.keypressed(key, scancode, isrepeat)
     offScreenArea.canvas:renderTo(function()
       love.graphics.clear(colors.transparent)
     end)
+    spriteSheetManager.lastPressedX = nil
+    spriteSheetManager.lastPressedY = nil
   end
 end
 
@@ -217,6 +230,12 @@ local function paint(strokeType, dx, dy)
         {viewportManager.currentFrameQuad:getViewport()},
         dx,
         dy
+      )
+    end)
+    offScreenArea.canvas:renderTo(function()
+      spriteSheetManager:renderMousePressedStroke(
+        viewportManager.zoom,
+        {viewportManager.currentFrameQuad:getViewport()}
       )
     end)
   end
@@ -245,6 +264,8 @@ function love.mousereleased(x, y, button, istouch, presses)
     viewportManager.dragging = false
   elseif button == 1 then -- left click
     spriteSheetManager:clearPencilStrokePoints()
+    spriteSheetManager.lastPressedX = nil
+    spriteSheetManager.lastPressedY = nil
   end
 end
 
